@@ -1,0 +1,3286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubernetes Visual Guide — Animated Edition</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --accent5: #f472b6;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #334155;
+    --code-bg: #0d1117;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height:1.7; }
+
+  /* NAV */
+  .sidebar { position:fixed; left:0; top:0; width:280px; height:100vh; background:#0b1120; border-right:1px solid var(--border); overflow-y:auto; z-index:100; padding:20px 0; }
+  .sidebar h2 { padding:0 20px 15px; font-size:15px; color:var(--accent); border-bottom:1px solid var(--border); margin-bottom:10px; letter-spacing:1px; }
+  .sidebar a { display:block; padding:8px 20px; color:var(--muted); text-decoration:none; font-size:13.5px; transition:.2s; border-left:3px solid transparent; }
+  .sidebar a:hover, .sidebar a.active { color:var(--accent); background:rgba(56,189,248,.06); border-left-color:var(--accent); }
+  .sidebar .section-label { padding:15px 20px 5px; font-size:11px; text-transform:uppercase; letter-spacing:2px; color:var(--accent2); }
+
+  .main { margin-left:280px; padding:40px 50px 80px; max-width:1100px; }
+
+  h1 { font-size:2.4em; margin-bottom:8px; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .subtitle { color:var(--muted); font-size:1.1em; margin-bottom:40px; }
+
+  h2 { font-size:1.7em; margin:50px 0 20px; padding-bottom:10px; border-bottom:2px solid var(--border); color:var(--accent); }
+  h3 { font-size:1.2em; margin:30px 0 12px; color:var(--accent3); }
+
+  p { margin-bottom:14px; color:var(--text); }
+  .highlight { color:var(--accent); font-weight:600; }
+
+  /* DIAGRAM BOXES */
+  .diagram { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:30px; margin:20px 0 30px; overflow-x:auto; position:relative; }
+  .diagram-title { font-size:13px; text-transform:uppercase; letter-spacing:2px; color:var(--accent2); margin-bottom:18px; }
+
+  svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  /* CODE */
+  pre { background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:18px 22px; margin:12px 0 20px; overflow-x:auto; font-size:13.5px; line-height:1.6; position:relative; }
+  code { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; color:#c9d1d9; }
+  .kw { color:#ff7b72; } .str { color:#a5d6ff; } .cm { color:#8b949e; } .val { color:#79c0ff; } .key { color:#d2a8ff; }
+
+  /* COPY BUTTON */
+  .copy-btn { position:absolute; top:8px; right:8px; background:var(--card); border:1px solid var(--border); color:var(--muted); padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; transition:.2s; display:flex; align-items:center; gap:5px; opacity:0; z-index:5; font-family:system-ui,sans-serif; }
+  pre:hover .copy-btn { opacity:1; }
+  .copy-btn:hover { background:var(--accent); color:#000; border-color:var(--accent); }
+  .copy-btn.copied { background:var(--accent3); color:#000; border-color:var(--accent3); }
+  .copy-btn svg { width:14px; height:14px; fill:currentColor; }
+
+  /* CODE BLOCK LANGUAGE LABEL */
+  .code-lang { position:absolute; top:8px; left:12px; font-size:10px; font-family:system-ui,sans-serif; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); background:var(--card); padding:2px 8px; border-radius:4px; border:1px solid var(--border); z-index:5; }
+  pre.has-lang { padding-top:34px; }
+
+  /* CARDS */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin:20px 0; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:22px; transition:.3s; }
+  .card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 30px rgba(56,189,248,.1); }
+  .card .icon { font-size:2em; margin-bottom:10px; }
+  .card h4 { margin:0 0 8px; color:var(--text); font-size:1.05em; }
+  .card p { font-size:.9em; color:var(--muted); margin:0; }
+
+  /* TIPS */
+  .tip { background:rgba(56,189,248,.08); border-left:4px solid var(--accent); border-radius:0 8px 8px 0; padding:16px 20px; margin:16px 0; }
+  .tip-title { font-weight:700; color:var(--accent); font-size:.85em; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+  .warn-box { background:rgba(251,146,60,.08); border-left:4px solid var(--accent4); border-radius:0 8px 8px 0; padding:16px 20px; margin:16px 0; }
+  .warn-title { font-weight:700; color:var(--accent4); font-size:.85em; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+
+  /* TABLE */
+  table { width:100%; border-collapse:collapse; margin:16px 0; font-size:.92em; }
+  th { background:var(--card); color:var(--accent); text-align:left; padding:12px 16px; border-bottom:2px solid var(--accent); }
+  td { padding:10px 16px; border-bottom:1px solid var(--border); }
+  tr:hover td { background:rgba(56,189,248,.04); }
+
+  /* TABS */
+  .tabs { display:flex; gap:4px; margin:20px 0 0; flex-wrap:wrap; }
+  .tab-btn { padding:8px 18px; background:var(--card); border:1px solid var(--border); border-bottom:none; border-radius:8px 8px 0 0; color:var(--muted); cursor:pointer; font-size:13px; transition:.2s; }
+  .tab-btn.active { background:var(--code-bg); color:var(--accent); border-color:var(--accent); }
+  .tab-content { display:none; background:var(--code-bg); border:1px solid var(--border); border-radius:0 8px 8px 8px; padding:22px; margin-bottom:20px; }
+  .tab-content.active { display:block; }
+
+  /* FLOW */
+  .flow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:16px 0; }
+  .flow-step { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 18px; font-size:.9em; white-space:nowrap; }
+  .flow-arrow { color:var(--accent); font-size:1.4em; }
+
+  .vs-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:16px 0; }
+  .vs-box { background:var(--card); border-radius:10px; padding:20px; border:1px solid var(--border); }
+  .vs-box h4 { margin-top:0; }
+
+  .checklist { list-style:none; padding:0; margin:12px 0; }
+  .checklist li { padding:6px 0 6px 28px; position:relative; color:var(--text); font-size:.95em; }
+  .checklist li::before { content:'✓'; position:absolute; left:0; color:var(--accent3); font-weight:bold; }
+
+  /* PROGRESS BAR */
+  .progress-bar { position:fixed; top:0; left:280px; right:0; height:3px; z-index:200; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3)); width:0%; transition:width .1s; }
+
+  /* ==================== ANIMATIONS ==================== */
+
+  /* Fade-in on scroll */
+  .fade-in { opacity:0; transform:translateY(30px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+  .fade-in.visible { opacity:1; transform:translateY(0); }
+
+  /* Packet animation keyframes */
+  @keyframes packetFlow {
+    0% { offset-distance: 0%; opacity:0; }
+    10% { opacity:1; }
+    90% { opacity:1; }
+    100% { offset-distance: 100%; opacity:0; }
+  }
+
+  /* Glowing pulse */
+  @keyframes glowPulse {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(56,189,248,0.3)); }
+    50% { filter: drop-shadow(0 0 12px rgba(56,189,248,0.7)); }
+  }
+
+  @keyframes glowGreen {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(52,211,153,0.3)); }
+    50% { filter: drop-shadow(0 0 12px rgba(52,211,153,0.7)); }
+  }
+
+  @keyframes glowOrange {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(251,146,60,0.3)); }
+    50% { filter: drop-shadow(0 0 12px rgba(251,146,60,0.7)); }
+  }
+
+  @keyframes glowPink {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(244,114,182,0.3)); }
+    50% { filter: drop-shadow(0 0 12px rgba(244,114,182,0.7)); }
+  }
+
+  /* Dash animation for SVG lines */
+  @keyframes dashFlow {
+    to { stroke-dashoffset: -20; }
+  }
+  .animated-dash {
+    stroke-dasharray: 8 4;
+    animation: dashFlow 0.8s linear infinite;
+  }
+
+  @keyframes dashFlowReverse {
+    to { stroke-dashoffset: 20; }
+  }
+  .animated-dash-reverse {
+    stroke-dasharray: 8 4;
+    animation: dashFlowReverse 0.8s linear infinite;
+  }
+
+  /* Floating animation */
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* Scale in */
+  @keyframes scaleIn {
+    from { transform: scale(0.8); opacity:0; }
+    to { transform: scale(1); opacity:1; }
+  }
+
+  /* Typing cursor */
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .cursor { display:inline-block; width:2px; height:1em; background:var(--accent); animation: blink 1s infinite; vertical-align:text-bottom; margin-left:2px; }
+
+  /* Heartbeat for health probes */
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    15% { transform: scale(1.15); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.1); }
+    60% { transform: scale(1); }
+  }
+
+  /* Spinning K8s wheel */
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Traffic light animation */
+  @keyframes trafficPulse1 { 0%,30%{opacity:1} 31%,100%{opacity:.2} }
+  @keyframes trafficPulse2 { 0%,30%{opacity:.2} 31%,60%{opacity:1} 61%,100%{opacity:.2} }
+  @keyframes trafficPulse3 { 0%,60%{opacity:.2} 61%,100%{opacity:1} }
+
+  /* Interactive simulation buttons */
+  .sim-btn { background:var(--accent); color:#000; border:none; padding:10px 22px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:.2s; margin:8px 4px; }
+  .sim-btn:hover { background:#7dd3fc; transform:scale(1.03); }
+  .sim-btn.danger { background:#ef4444; color:#fff; }
+  .sim-btn.danger:hover { background:#f87171; }
+  .sim-btn.success { background:var(--accent3); color:#000; }
+  .sim-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .sim-status { padding:10px 16px; border-radius:8px; margin-top:10px; font-size:13px; min-height:38px; background:var(--code-bg); border:1px solid var(--border); font-family:monospace; }
+
+  /* Animated counter */
+  .counter { font-size:2em; font-weight:bold; color:var(--accent); font-family:monospace; }
+
+  /* PAIN POINTS ACCORDION */
+  .pain-category { background:var(--card); border:1px solid var(--border); border-radius:10px; margin:8px 0; cursor:pointer; transition:.2s; }
+  .pain-category:hover { border-color:var(--accent); }
+  .pain-header { display:flex; align-items:center; padding:16px 20px; gap:12px; }
+  .pain-icon { font-size:1.5em; }
+  .pain-title { flex:1; font-size:1.05em; font-weight:600; color:var(--text); }
+  .pain-count { font-size:.8em; color:var(--muted); background:var(--code-bg); padding:3px 10px; border-radius:12px; }
+  .pain-arrow { color:var(--accent); font-size:1.2em; transition:transform .3s; }
+  .pain-arrow.open { transform:rotate(180deg); }
+  .pain-body { display:none; padding:0 20px 20px; }
+  .pain-body.open { display:block; animation: fadeSlide 0.3s ease-out; }
+  @keyframes fadeSlide { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+  .pain-item { background:var(--code-bg); border:1px solid var(--border); border-radius:8px; margin:10px 0; overflow:hidden; }
+  .pain-item-header { padding:12px 16px; display:flex; align-items:center; gap:10px; border-left:4px solid; }
+  .pain-severity { font-size:.7em; font-weight:700; padding:3px 8px; border-radius:4px; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
+  .pain-severity.high { background:#ef4444; color:#fff; }
+  .pain-severity.med { background:#fb923c; color:#000; }
+  .pain-severity.low { background:#a78bfa; color:#000; }
+  .pain-name { font-weight:600; color:var(--text); font-size:.95em; }
+  .pain-detail { padding:12px 16px 16px; border-top:1px solid var(--border); }
+  .pain-detail pre { margin:8px 0; font-size:12.5px; }
+  .pain-why { color:var(--muted); margin-bottom:8px; font-size:.9em; }
+  .pain-fix { color:var(--accent3); font-size:.9em; margin-bottom:4px; }
+
+  @media(max-width:900px) {
+    .sidebar { display:none; }
+    .main { margin-left:0; padding:20px; }
+    .progress-bar { left:0; }
+    .vs-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <h2>☸ K8S GUIDE</h2>
+  <div class="section-label">Core Concepts</div>
+  <a href="#big-picture">The Big Picture</a>
+  <a href="#pod">Pod</a>
+  <a href="#deployment">Deployment</a>
+  <a href="#service">Service & Ports (Key!)</a>
+  <a href="#port-sim">Port Flow Simulator</a>
+  <a href="#update-problem" style="color:#ef4444">⚠ Update/Cache Problem!</a>
+  <div class="section-label">Storage</div>
+  <a href="#volumes">Volumes & Mounts</a>
+  <a href="#pv-pvc">PV & PVC</a>
+  <a href="#storage-classes">StorageClass</a>
+  <div class="section-label">Config & Secrets</div>
+  <a href="#configmap">ConfigMap</a>
+  <a href="#secrets">Secrets</a>
+  <div class="section-label">Networking Deep Dive</div>
+  <a href="#networking">Full Request Lifecycle</a>
+  <a href="#networking">Labels → Selectors (Glue!)</a>
+  <a href="#networking">Pod Communication Paths</a>
+  <a href="#networking">Networking Simulator</a>
+  <a href="#networking">Service Discovery</a>
+  <a href="#networking">NetworkPolicy</a>
+  <a href="#ingress">Ingress Routing</a>
+  <a href="#dns">DNS / CoreDNS</a>
+  <div class="section-label">DevOps Ecosystem</div>
+  <a href="#helm">Helm</a>
+  <a href="#ci-cd">CI/CD Pipeline</a>
+  <a href="#gitops">GitOps & ArgoCD</a>
+  <a href="#monitoring">Monitoring</a>
+  <a href="#pain-points" style="color:#ef4444">🔥 Pain Points & Fixes</a>
+  <a href="#security">Security</a>
+  <div class="section-label">Beyond K8s</div>
+  <a href="#tools">Essential Tools</a>
+  <a href="#learning">Speed-Learning Tips</a>
+  <a href="#cheatsheet">Cheatsheet</a>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+<h1>Kubernetes Visual Guide</h1>
+<p class="subtitle">Animated Edition — watch the traffic flow, see the connections, understand by seeing.</p>
+
+<!-- ===================== BIG PICTURE ===================== -->
+<section id="big-picture" class="fade-in">
+<h2>1. The Big Picture — Animated Architecture</h2>
+<p>Watch how a request travels through the Kubernetes cluster. The <span class="highlight">blue packets</span> show traffic flowing from the user through the system.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Live Traffic Flow Through Kubernetes</div>
+  <svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;" id="arch-svg">
+    <!-- Control Plane -->
+    <rect x="20" y="20" width="860" height="100" rx="12" fill="#1a1a3e" stroke="#a78bfa" stroke-width="2" style="animation:glowPulse 4s infinite"/>
+    <text x="40" y="50" fill="#a78bfa" font-size="14" font-weight="bold">CONTROL PLANE (Master)</text>
+    <rect x="40" y="62" width="130" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="60" y="88" fill="#e2e8f0" font-size="12">API Server</text>
+    <rect x="185" y="62" width="130" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="200" y="88" fill="#e2e8f0" font-size="12">etcd (Database)</text>
+    <rect x="330" y="62" width="130" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="352" y="88" fill="#e2e8f0" font-size="12">Scheduler</text>
+    <rect x="475" y="62" width="170" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="490" y="88" fill="#e2e8f0" font-size="12">Controller Manager</text>
+
+    <!-- Animated connection line -->
+    <line x1="450" y1="120" x2="450" y2="155" stroke="#38bdf8" stroke-width="2" class="animated-dash"/>
+    <text x="460" y="143" fill="#94a3b8" font-size="11">kubectl / API</text>
+
+    <!-- Worker Node 1 -->
+    <rect x="20" y="160" width="430" height="330" rx="12" fill="#162032" stroke="#38bdf8" stroke-width="2"/>
+    <text x="40" y="188" fill="#38bdf8" font-size="14" font-weight="bold">WORKER NODE 1</text>
+
+    <!-- Pod 1 with heartbeat -->
+    <g style="animation: float 3s ease-in-out infinite">
+      <rect x="40" y="210" width="180" height="100" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+      <text x="55" y="232" fill="#34d399" font-size="12" font-weight="bold">Pod (my-app-abc12)</text>
+      <rect x="55" y="244" width="150" height="26" rx="4" fill="#0d1117" stroke="#475569"/>
+      <text x="65" y="262" fill="#e2e8f0" font-size="11">Container: nginx:1.25</text>
+      <rect x="55" y="276" width="150" height="26" rx="4" fill="#0d1117" stroke="#475569"/>
+      <text x="65" y="293" fill="#e2e8f0" font-size="11">Port: 8080</text>
+    </g>
+
+    <!-- Pod 2 with heartbeat -->
+    <g style="animation: float 3s ease-in-out infinite; animation-delay:0.5s">
+      <rect x="240" y="210" width="180" height="100" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+      <text x="255" y="232" fill="#34d399" font-size="12" font-weight="bold">Pod (my-app-def34)</text>
+      <rect x="255" y="244" width="150" height="26" rx="4" fill="#0d1117" stroke="#475569"/>
+      <text x="265" y="262" fill="#e2e8f0" font-size="11">Container: nginx:1.25</text>
+      <rect x="255" y="276" width="150" height="26" rx="4" fill="#0d1117" stroke="#475569"/>
+      <text x="265" y="293" fill="#e2e8f0" font-size="11">Port: 8080</text>
+    </g>
+
+    <!-- Service with glow -->
+    <rect x="60" y="340" width="350" height="55" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="2" style="animation:glowOrange 3s infinite"/>
+    <text x="100" y="365" fill="#fb923c" font-size="14" font-weight="bold">Service: my-app-svc</text>
+    <text x="100" y="385" fill="#94a3b8" font-size="11">ClusterIP:80 → targetPort:8080</text>
+
+    <!-- Animated arrows from service to pods -->
+    <line x1="160" y1="340" x2="130" y2="310" stroke="#fb923c" stroke-width="2" class="animated-dash"/>
+    <line x1="310" y1="340" x2="330" y2="310" stroke="#fb923c" stroke-width="2" class="animated-dash"/>
+
+    <!-- Ingress -->
+    <rect x="60" y="420" width="350" height="50" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="2" style="animation:glowPulse 3s infinite; animation-delay:1s"/>
+    <text x="100" y="450" fill="#a78bfa" font-size="13" font-weight="bold">Ingress: app.example.com → Service</text>
+
+    <line x1="235" y1="420" x2="235" y2="395" stroke="#a78bfa" stroke-width="1.5" class="animated-dash"/>
+
+    <!-- Worker Node 2 -->
+    <rect x="470" y="160" width="410" height="330" rx="12" fill="#162032" stroke="#38bdf8" stroke-width="2"/>
+    <text x="490" y="188" fill="#38bdf8" font-size="14" font-weight="bold">WORKER NODE 2</text>
+
+    <!-- Pod 3 - DB -->
+    <g style="animation: float 3.5s ease-in-out infinite; animation-delay:1s">
+      <rect x="490" y="210" width="180" height="100" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+      <text x="505" y="232" fill="#34d399" font-size="12" font-weight="bold">Pod (db-xyz56)</text>
+      <rect x="505" y="244" width="150" height="26" rx="4" fill="#0d1117" stroke="#475569"/>
+      <text x="515" y="262" fill="#e2e8f0" font-size="11">Container: postgres:16</text>
+      <rect x="505" y="276" width="150" height="26" rx="4" fill="#0d1117" stroke="#475569"/>
+      <text x="515" y="293" fill="#e2e8f0" font-size="11">PVC: db-storage 10Gi</text>
+    </g>
+
+    <!-- PV -->
+    <rect x="700" y="220" width="160" height="80" rx="8" fill="#1e293b" stroke="#f472b6" stroke-width="1.5" style="animation:glowPink 4s infinite"/>
+    <text x="720" y="248" fill="#f472b6" font-size="12" font-weight="bold">PersistentVolume</text>
+    <text x="720" y="268" fill="#94a3b8" font-size="11">10Gi - ReadWriteOnce</text>
+    <text x="720" y="285" fill="#94a3b8" font-size="11">hostPath: /mnt/data</text>
+    <line x1="700" y1="260" x2="670" y2="270" stroke="#f472b6" stroke-width="1.5" class="animated-dash-reverse"/>
+
+    <!-- Secret -->
+    <rect x="510" y="340" width="160" height="50" rx="8" fill="#1e293b" stroke="#f472b6" stroke-width="1.5"/>
+    <text x="530" y="370" fill="#f472b6" font-size="12">🔒 Secret: db-creds</text>
+    <line x1="570" y1="340" x2="570" y2="310" stroke="#f472b6" stroke-width="1" class="animated-dash"/>
+
+    <!-- ANIMATED TRAFFIC PACKETS -->
+    <!-- Path from user to ingress to service to pod -->
+    <path id="trafficPath1" d="M0,450 L60,450 L60,367 L130,310 L130,260" fill="none" stroke="none"/>
+    <path id="trafficPath2" d="M0,450 L60,450 L60,367 L330,310 L330,260" fill="none" stroke="none"/>
+
+    <circle r="5" fill="#38bdf8" opacity="0">
+      <animateMotion dur="3s" repeatCount="indefinite" path="M0,450 L60,450 L60,367 L130,310 L130,260">
+        <mpath href="#trafficPath1"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;1;0" dur="3s" repeatCount="indefinite"/>
+    </circle>
+
+    <circle r="5" fill="#34d399" opacity="0">
+      <animateMotion dur="3.5s" repeatCount="indefinite" path="M0,450 L60,450 L60,367 L330,310 L330,260">
+        <mpath href="#trafficPath2"/>
+      </animateMotion>
+      <animate attributeName="opacity" values="0;1;1;1;0" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Packet flowing from external -->
+    <circle r="4" fill="#a78bfa">
+      <animate attributeName="cx" values="0;60;60;235;235" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="450;450;420;420;395" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;1;0" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Arrow markers -->
+    <defs>
+      <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#38bdf8"/></marker>
+      <marker id="arrowOrange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#fb923c"/></marker>
+      <marker id="arrowPink" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f472b6"/></marker>
+      <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#34d399"/></marker>
+    </defs>
+  </svg>
+  <p style="color:var(--muted);font-size:12px;margin-top:10px;">Watch the colored dots — they represent traffic flowing through the system in real time.</p>
+</div>
+</section>
+
+<!-- ===================== POD ===================== -->
+<section id="pod" class="fade-in">
+<h2>2. Pod — The Smallest Unit</h2>
+<p>A Pod wraps one or more containers that share <span class="highlight">localhost</span> and storage. Watch the data flow between containers:</p>
+
+<div class="diagram">
+  <div class="diagram-title">Inside a Pod — Live Communication</div>
+  <svg viewBox="0 0 620 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:620px;">
+    <rect x="10" y="10" width="600" height="210" rx="12" fill="#1e293b" stroke="#34d399" stroke-width="2" style="animation:glowGreen 4s infinite"/>
+    <text x="30" y="38" fill="#34d399" font-size="14" font-weight="bold">Pod</text>
+    <text x="30" y="55" fill="#94a3b8" font-size="11">IP: 10.244.1.5 — one IP shared by all containers</text>
+
+    <!-- Container 1 -->
+    <rect x="30" y="72" width="220" height="65" rx="6" fill="#0d1117" stroke="#38bdf8"/>
+    <text x="45" y="98" fill="#38bdf8" font-size="13" font-weight="bold">Container 1: app</text>
+    <text x="45" y="122" fill="#94a3b8" font-size="11">Listens on localhost:8080</text>
+
+    <!-- Container 2 -->
+    <rect x="370" y="72" width="220" height="65" rx="6" fill="#0d1117" stroke="#a78bfa"/>
+    <text x="385" y="98" fill="#a78bfa" font-size="13" font-weight="bold">Container 2: sidecar</text>
+    <text x="385" y="122" fill="#94a3b8" font-size="11">Log collector on :9090</text>
+
+    <!-- Animated bidirectional data flow -->
+    <line x1="250" y1="95" x2="370" y2="95" stroke="#fb923c" stroke-width="2" class="animated-dash"/>
+    <line x1="250" y1="110" x2="370" y2="110" stroke="#34d399" stroke-width="2" class="animated-dash-reverse"/>
+
+    <!-- Animated packets between containers -->
+    <circle r="4" fill="#fb923c">
+      <animate attributeName="cx" values="255;365" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="95;95" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" dur="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="4" fill="#34d399">
+      <animate attributeName="cx" values="365;255" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="110;110" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <text x="280" y="85" fill="#fb923c" font-size="10" font-weight="bold">localhost</text>
+
+    <!-- Shared Volume -->
+    <rect x="30" y="158" width="560" height="48" rx="6" fill="#0d1117" stroke="#f472b6" style="animation:glowPink 5s infinite"/>
+    <text x="45" y="188" fill="#f472b6" font-size="12">📦 Shared Volume: emptyDir → both containers can read/write /shared-data</text>
+
+    <!-- Animated write indicator -->
+    <rect x="530" y="163" width="50" height="20" rx="4" fill="#f472b6" opacity="0.2">
+      <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="537" y="178" fill="#fff" font-size="9">WRITE</text>
+  </svg>
+</div>
+
+<div class="tip">
+  <div class="tip-title">Key Insight</div>
+  Containers in the same Pod talk via <code>localhost</code>. They share one IP address and can share volumes. This is why a Pod is <em>not</em> the same as a container.
+</div>
+</section>
+
+<!-- ===================== DEPLOYMENT ===================== -->
+<section id="deployment" class="fade-in">
+<h2>3. Deployment — Managing Pods</h2>
+<p>You almost <strong>never</strong> create Pods directly. A <span class="highlight">Deployment</span> manages a ReplicaSet which manages Pods.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Deployment → ReplicaSet → Pods (Animated Chain)</div>
+  <svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <!-- Deployment -->
+    <g style="animation:scaleIn 0.5s ease-out both">
+      <rect x="10" y="80" width="160" height="80" rx="10" fill="#2d2b55" stroke="#a78bfa" stroke-width="2" style="animation:glowPulse 3s infinite"/>
+      <text x="35" y="115" fill="#a78bfa" font-size="14" font-weight="bold">Deployment</text>
+      <text x="35" y="140" fill="#94a3b8" font-size="12">replicas: 3</text>
+    </g>
+
+    <!-- Arrow -->
+    <line x1="170" y1="120" x2="240" y2="120" stroke="#38bdf8" stroke-width="2" class="animated-dash" marker-end="url(#arrowBlue)"/>
+    <text x="180" y="110" fill="#94a3b8" font-size="10">manages</text>
+
+    <!-- ReplicaSet -->
+    <g style="animation:scaleIn 0.5s ease-out 0.3s both">
+      <rect x="240" y="70" width="180" height="100" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+      <text x="265" y="105" fill="#38bdf8" font-size="14" font-weight="bold">ReplicaSet</text>
+      <text x="265" y="125" fill="#94a3b8" font-size="11">Ensures 3 pods</text>
+      <text x="265" y="145" fill="#94a3b8" font-size="11">always running</text>
+    </g>
+
+    <!-- Arrows to pods -->
+    <line x1="420" y1="95" x2="500" y2="45" stroke="#34d399" stroke-width="1.5" class="animated-dash" marker-end="url(#arrowGreen)"/>
+    <line x1="420" y1="120" x2="500" y2="120" stroke="#34d399" stroke-width="1.5" class="animated-dash" marker-end="url(#arrowGreen)"/>
+    <line x1="420" y1="145" x2="500" y2="195" stroke="#34d399" stroke-width="1.5" class="animated-dash" marker-end="url(#arrowGreen)"/>
+
+    <!-- Pods with staggered animation -->
+    <g style="animation:scaleIn 0.4s ease-out 0.6s both; animation:float 3s ease-in-out infinite">
+      <rect x="500" y="20" width="160" height="50" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="520" y="42" fill="#34d399" font-size="12" font-weight="bold">Pod abc12</text>
+      <text x="520" y="58" fill="#94a3b8" font-size="10">10.244.1.5</text>
+      <!-- Health heartbeat -->
+      <circle cx="640" cy="45" r="8" fill="none" stroke="#34d399" stroke-width="1.5">
+        <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+      <text x="635" y="48" fill="#34d399" font-size="8">♥</text>
+    </g>
+
+    <g style="animation: float 3s ease-in-out infinite; animation-delay:0.4s">
+      <rect x="500" y="95" width="160" height="50" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="520" y="117" fill="#34d399" font-size="12" font-weight="bold">Pod def34</text>
+      <text x="520" y="133" fill="#94a3b8" font-size="10">10.244.1.6</text>
+      <circle cx="640" cy="120" r="8" fill="none" stroke="#34d399" stroke-width="1.5">
+        <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite" begin="0.5s"/>
+        <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" begin="0.5s"/>
+      </circle>
+      <text x="635" y="123" fill="#34d399" font-size="8">♥</text>
+    </g>
+
+    <g style="animation: float 3s ease-in-out infinite; animation-delay:0.8s">
+      <rect x="500" y="170" width="160" height="50" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="520" y="192" fill="#34d399" font-size="12" font-weight="bold">Pod ghi56</text>
+      <text x="520" y="208" fill="#94a3b8" font-size="10">10.244.2.3</text>
+      <circle cx="640" cy="195" r="8" fill="none" stroke="#34d399" stroke-width="1.5">
+        <animate attributeName="r" values="6;10;6" dur="1.5s" repeatCount="indefinite" begin="1s"/>
+        <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" begin="1s"/>
+      </circle>
+      <text x="635" y="198" fill="#34d399" font-size="8">♥</text>
+    </g>
+
+    <!-- Legend -->
+    <text x="700" y="45" fill="#94a3b8" font-size="10">← heartbeat</text>
+    <text x="700" y="60" fill="#94a3b8" font-size="10">   = healthy</text>
+  </svg>
+</div>
+
+<pre><code><span class="cm"># deployment.yaml</span>
+<span class="kw">apiVersion:</span> <span class="str">apps/v1</span>
+<span class="kw">kind:</span> <span class="str">Deployment</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-app</span>
+<span class="kw">spec:</span>
+  <span class="key">replicas:</span> <span class="val">3</span>
+  <span class="key">selector:</span>
+    <span class="key">matchLabels:</span>
+      <span class="key">app:</span> <span class="str">my-app</span>       <span class="cm"># ← must match template labels!</span>
+  <span class="key">template:</span>
+    <span class="key">metadata:</span>
+      <span class="key">labels:</span>
+        <span class="key">app:</span> <span class="str">my-app</span>     <span class="cm"># ← label that Service will find</span>
+    <span class="key">spec:</span>
+      <span class="key">containers:</span>
+      - <span class="key">name:</span> <span class="str">my-app</span>
+        <span class="key">image:</span> <span class="str">my-app:1.0</span>
+        <span class="key">ports:</span>
+        - <span class="key">containerPort:</span> <span class="val">8080</span></code></pre>
+</section>
+
+<!-- ===================== SERVICE & PORTS ===================== -->
+<section id="service" class="fade-in">
+<h2>4. Service & Ports — The Part That Confuses Everyone</h2>
+<p>This is your #1 confusion. Watch the <span class="highlight">animated traffic flow</span> through each port type:</p>
+
+<div class="diagram">
+  <div class="diagram-title">Animated Port Mapping — Watch the Traffic!</div>
+  <svg viewBox="0 0 870 370" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:870px;">
+    <!-- User -->
+    <rect x="10" y="130" width="110" height="60" rx="8" fill="#2d2b55" stroke="#a78bfa" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="28" y="158" fill="#a78bfa" font-size="13">🌐 User</text>
+    <text x="28" y="175" fill="#94a3b8" font-size="11">Browser</text>
+
+    <!-- Node box -->
+    <rect x="220" y="20" width="630" height="340" rx="12" fill="#162032" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="240" y="50" fill="#38bdf8" font-size="13" font-weight="bold">Worker Node (IP: 192.168.1.10)</text>
+
+    <!-- NodePort zone -->
+    <rect x="130" y="100" width="80" height="120" rx="8" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4"/>
+    <text x="135" y="95" fill="#a78bfa" font-size="11" font-weight="bold">nodePort</text>
+    <text x="140" y="155" fill="#a78bfa" font-size="22" font-weight="bold">30080</text>
+    <text x="140" y="175" fill="#94a3b8" font-size="9">External door</text>
+
+    <!-- Animated packet: user → nodePort -->
+    <circle r="6" fill="#a78bfa">
+      <animate attributeName="cx" values="120;160;220" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="160;160;160" dur="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Service -->
+    <rect x="250" y="90" width="230" height="160" rx="10" fill="#1e293b" stroke="#fb923c" stroke-width="2" style="animation:glowOrange 3s infinite"/>
+    <text x="280" y="120" fill="#fb923c" font-size="14" font-weight="bold">Service: my-app-svc</text>
+    <text x="280" y="140" fill="#94a3b8" font-size="11">ClusterIP: 10.96.45.12</text>
+
+    <rect x="280" y="155" width="170" height="35" rx="6" fill="#0d1117" stroke="#fb923c"/>
+    <text x="300" y="178" fill="#fb923c" font-size="14" font-weight="bold">port: 80</text>
+    <text x="280" y="210" fill="#94a3b8" font-size="10">selector: app=my-app</text>
+    <text x="280" y="228" fill="#e2e8f0" font-size="10">Finds pods with matching label</text>
+
+    <!-- targetPort label -->
+    <text x="500" y="152" fill="#34d399" font-size="13" font-weight="bold">targetPort</text>
+    <text x="510" y="170" fill="#34d399" font-size="20" font-weight="bold">8080</text>
+
+    <!-- Animated packets: service → pods -->
+    <circle r="5" fill="#34d399">
+      <animate attributeName="cx" values="480;570;600" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="170;120;110" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;0" dur="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5" fill="#34d399">
+      <animate attributeName="cx" values="480;570;600" dur="1.4s" repeatCount="indefinite" begin="0.7s"/>
+      <animate attributeName="cy" values="170;240;250" dur="1.4s" repeatCount="indefinite" begin="0.7s"/>
+      <animate attributeName="opacity" values="0;1;0" dur="1.4s" repeatCount="indefinite" begin="0.7s"/>
+    </circle>
+
+    <!-- Arrows service → pods -->
+    <line x1="480" y1="150" x2="590" y2="100" stroke="#34d399" stroke-width="2" class="animated-dash"/>
+    <line x1="480" y1="190" x2="590" y2="240" stroke="#34d399" stroke-width="2" class="animated-dash"/>
+
+    <!-- Pod 1 -->
+    <g style="animation: float 3s ease-in-out infinite">
+      <rect x="590" y="70" width="230" height="70" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+      <text x="610" y="95" fill="#34d399" font-size="12" font-weight="bold">Pod 1 (app-abc12)</text>
+      <rect x="605" y="104" width="200" height="24" rx="4" fill="#0d1117" stroke="#475569"/>
+      <text x="615" y="121" fill="#e2e8f0" font-size="11">containerPort: <tspan fill="#34d399" font-weight="bold">8080</tspan></text>
+    </g>
+
+    <!-- Pod 2 -->
+    <g style="animation: float 3s ease-in-out infinite; animation-delay:0.5s">
+      <rect x="590" y="210" width="230" height="70" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+      <text x="610" y="235" fill="#34d399" font-size="12" font-weight="bold">Pod 2 (app-def34)</text>
+      <rect x="605" y="244" width="200" height="24" rx="4" fill="#0d1117" stroke="#475569"/>
+      <text x="615" y="261" fill="#e2e8f0" font-size="11">containerPort: <tspan fill="#34d399" font-weight="bold">8080</tspan></text>
+    </g>
+
+    <!-- Load balancing indicator -->
+    <text x="530" y="195" fill="#94a3b8" font-size="10">⚖️ Round</text>
+    <text x="530" y="210" fill="#94a3b8" font-size="10">   Robin</text>
+
+    <!-- Legend -->
+    <rect x="250" y="280" width="570" height="65" rx="8" fill="#0d1117" stroke="var(--border)"/>
+    <text x="270" y="303" fill="#e2e8f0" font-size="12" font-weight="bold">Traffic Path:</text>
+    <circle cx="275" cy="325" r="6" fill="#a78bfa"/><text x="288" y="330" fill="#94a3b8" font-size="11">User hits <tspan fill="#a78bfa" font-weight="bold">nodePort:30080</tspan></text>
+    <text x="470" y="330" fill="#94a3b8" font-size="14">→</text>
+    <circle cx="495" cy="325" r="6" fill="#fb923c"/><text x="508" y="330" fill="#94a3b8" font-size="11">Service <tspan fill="#fb923c" font-weight="bold">port:80</tspan></text>
+    <text x="615" y="330" fill="#94a3b8" font-size="14">→</text>
+    <circle cx="640" cy="325" r="6" fill="#34d399"/><text x="653" y="330" fill="#94a3b8" font-size="11">Pod <tspan fill="#34d399" font-weight="bold">targetPort:8080</tspan></text>
+  </svg>
+</div>
+
+<table>
+  <tr><th>Port Name</th><th>Who Uses It</th><th>Example</th><th>Analogy</th></tr>
+  <tr><td><code style="color:#fb923c">port</code></td><td>The Service itself</td><td>80</td><td>The <strong>front door</strong> of the Service</td></tr>
+  <tr><td><code style="color:#34d399">targetPort</code></td><td>The Pod/Container</td><td>8080</td><td>The <strong>actual room</strong> where your app runs</td></tr>
+  <tr><td><code style="color:#a78bfa">nodePort</code></td><td>External world → Node</td><td>30080</td><td>The <strong>street address</strong> anyone can visit</td></tr>
+  <tr><td><code style="color:#38bdf8">containerPort</code></td><td>Deployment spec (docs)</td><td>8080</td><td>A <strong>label</strong> saying what the app uses</td></tr>
+</table>
+
+<pre><code><span class="cm"># service.yaml</span>
+<span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Service</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-app-svc</span>
+<span class="kw">spec:</span>
+  <span class="key">type:</span> <span class="str">NodePort</span>
+  <span class="key">selector:</span>
+    <span class="key">app:</span> <span class="str">my-app</span>           <span class="cm"># ← MUST match Pod labels!</span>
+  <span class="key">ports:</span>
+  - <span class="key">port:</span> <span class="val">80</span>              <span class="cm"># ← Service listens here</span>
+    <span class="key">targetPort:</span> <span class="val">8080</span>      <span class="cm"># ← forwards to container's 8080</span>
+    <span class="key">nodePort:</span> <span class="val">30080</span>       <span class="cm"># ← external access (30000-32767)</span></code></pre>
+
+<div class="tip">
+  <div class="tip-title">The Golden Rule</div>
+  <code>targetPort</code> in Service MUST equal <code>containerPort</code> in Deployment. The <code>port</code> can be anything.
+</div>
+
+<h3>Service Types</h3>
+<div class="card-grid">
+  <div class="card"><div class="icon">🔒</div><h4>ClusterIP (default)</h4><p>Internal only. Other pods use: <code>my-app-svc:80</code></p></div>
+  <div class="card"><div class="icon">🚪</div><h4>NodePort</h4><p>Opens port 30000-32767 on every node. Dev/testing.</p></div>
+  <div class="card"><div class="icon">☁️</div><h4>LoadBalancer</h4><p>Cloud LB with public IP. Production standard.</p></div>
+  <div class="card"><div class="icon">🗺️</div><h4>ExternalName</h4><p>DNS alias only. No proxying.</p></div>
+</div>
+</section>
+
+<!-- ===================== PORT FLOW SIMULATOR ===================== -->
+<section id="port-sim" class="fade-in">
+<h2>5. Interactive Port Flow Simulator</h2>
+<p>Click the buttons to simulate real traffic scenarios and see what happens:</p>
+
+<div class="diagram" id="sim-container">
+  <div class="diagram-title">Live Simulation</div>
+  <svg viewBox="0 0 800 250" id="simSvg" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <!-- User -->
+    <rect id="sim-user" x="10" y="90" width="100" height="55" rx="8" fill="#2d2b55" stroke="#a78bfa" stroke-width="2"/>
+    <text x="30" y="118" fill="#a78bfa" font-size="12">🌐 User</text>
+    <text x="30" y="135" fill="#94a3b8" font-size="10" id="sim-user-text">Idle</text>
+
+    <!-- Service -->
+    <rect id="sim-svc" x="200" y="70" width="180" height="100" rx="10" fill="#1e293b" stroke="#fb923c" stroke-width="2"/>
+    <text x="225" y="100" fill="#fb923c" font-size="13" font-weight="bold">Service :80</text>
+    <text x="225" y="120" fill="#94a3b8" font-size="11" id="sim-svc-text">Waiting...</text>
+    <text x="225" y="140" fill="#94a3b8" font-size="10" id="sim-svc-count">Requests: 0</text>
+
+    <!-- Pod 1 -->
+    <rect id="sim-pod1" x="480" y="20" width="160" height="65" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="500" y="45" fill="#34d399" font-size="12" font-weight="bold">Pod 1 :8080</text>
+    <text x="500" y="65" fill="#94a3b8" font-size="10" id="sim-pod1-text">Ready ✓</text>
+    <circle id="sim-pod1-health" cx="620" cy="45" r="6" fill="#34d399"/>
+
+    <!-- Pod 2 -->
+    <rect id="sim-pod2" x="480" y="100" width="160" height="65" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="500" y="125" fill="#34d399" font-size="12" font-weight="bold">Pod 2 :8080</text>
+    <text x="500" y="145" fill="#94a3b8" font-size="10" id="sim-pod2-text">Ready ✓</text>
+    <circle id="sim-pod2-health" cx="620" cy="125" r="6" fill="#34d399"/>
+
+    <!-- Pod 3 -->
+    <rect id="sim-pod3" x="480" y="180" width="160" height="65" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="500" y="205" fill="#34d399" font-size="12" font-weight="bold">Pod 3 :8080</text>
+    <text x="500" y="225" fill="#94a3b8" font-size="10" id="sim-pod3-text">Ready ✓</text>
+    <circle id="sim-pod3-health" cx="620" cy="205" r="6" fill="#34d399"/>
+
+    <!-- Arrows -->
+    <line x1="110" y1="117" x2="200" y2="117" stroke="#a78bfa" stroke-width="2" stroke-dasharray="6 3" id="sim-arrow-in"/>
+    <line x1="380" y1="100" x2="480" y2="52" stroke="#34d399" stroke-width="1.5" stroke-dasharray="6 3" id="sim-arrow1"/>
+    <line x1="380" y1="120" x2="480" y2="132" stroke="#34d399" stroke-width="1.5" stroke-dasharray="6 3" id="sim-arrow2"/>
+    <line x1="380" y1="140" x2="480" y2="212" stroke="#34d399" stroke-width="1.5" stroke-dasharray="6 3" id="sim-arrow3"/>
+
+    <!-- Animated request packet (hidden by default) -->
+    <circle id="sim-packet" r="7" fill="#38bdf8" opacity="0"/>
+  </svg>
+
+  <div style="margin-top:15px;">
+    <button class="sim-btn" onclick="simSendRequest()">📤 Send Request</button>
+    <button class="sim-btn danger" onclick="simKillPod()">💥 Kill a Pod</button>
+    <button class="sim-btn success" onclick="simScaleUp()">📈 Scale Up</button>
+    <button class="sim-btn" onclick="simReset()" style="background:#475569;color:#fff">🔄 Reset</button>
+  </div>
+  <div class="sim-status" id="sim-log">Click a button to start the simulation...</div>
+</div>
+</section>
+
+<!-- ===================== DEPLOYMENT UPDATE / CACHE PROBLEM ===================== -->
+<section id="update-problem" class="fade-in">
+<h2>6. Why kubectl apply Doesn't Update My Pods! (Cache Problem)</h2>
+<p>This is <span class="highlight">the exact issue you're facing</span>. You change code, rebuild the image, run <code>kubectl apply -f deployment.yaml</code>... but nothing changes! Here's why, step by step:</p>
+
+<h3>6.1 The Root Cause — Kubernetes Sees "No Change"</h3>
+<div class="diagram">
+  <div class="diagram-title">Animated: Why kubectl apply Doesn't Trigger an Update</div>
+  <svg viewBox="0 0 880 500" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:880px;">
+
+    <!-- Timeline header -->
+    <text x="10" y="25" fill="#a78bfa" font-size="14" font-weight="bold">THE PROBLEM — Step by Step</text>
+
+    <!-- Step 1: First deploy -->
+    <rect x="10" y="40" width="860" height="80" rx="10" fill="#1a3a2a" stroke="#34d399" stroke-width="1.5"/>
+    <text x="30" y="65" fill="#34d399" font-size="12" font-weight="bold">STEP 1: First Deploy (works fine!)</text>
+    <text x="30" y="85" fill="#e2e8f0" font-size="12">kubectl apply -f deployment.yaml     image: <tspan fill="#38bdf8" font-weight="bold">my-app:latest</tspan></text>
+    <text x="30" y="105" fill="#94a3b8" font-size="11">→ K8s pulls image, creates pods. Everything works. ✅</text>
+
+    <!-- Animated checkmark -->
+    <circle cx="840" cy="75" r="15" fill="none" stroke="#34d399" stroke-width="2">
+      <animate attributeName="r" values="12;18;12" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <text x="833" y="80" fill="#34d399" font-size="14">✓</text>
+
+    <!-- Arrow down -->
+    <line x1="440" y1="120" x2="440" y2="140" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4"/>
+    <text x="450" y="135" fill="#94a3b8" font-size="10">You make code changes, rebuild image...</text>
+
+    <!-- Step 2: Rebuild but same tag -->
+    <rect x="10" y="145" width="860" height="80" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="30" y="170" fill="#38bdf8" font-size="12" font-weight="bold">STEP 2: You rebuild the Docker image</text>
+    <text x="30" y="190" fill="#e2e8f0" font-size="12">docker build -t <tspan fill="#fb923c" font-weight="bold">my-app:latest</tspan> .     docker push <tspan fill="#fb923c" font-weight="bold">my-app:latest</tspan></text>
+    <text x="30" y="210" fill="#94a3b8" font-size="11">→ New image pushed to registry with the SAME tag "latest". The image content changed but the name didn't.</text>
+
+    <!-- Warning icon -->
+    <rect x="790" y="160" width="60" height="45" rx="8" fill="#3a2a1a" stroke="#fb923c">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="808" y="190" fill="#fb923c" font-size="20">⚠️</text>
+
+    <!-- Arrow down -->
+    <line x1="440" y1="225" x2="440" y2="245" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4"/>
+
+    <!-- Step 3: kubectl apply - THE PROBLEM -->
+    <rect x="10" y="250" width="860" height="105" rx="10" fill="#3a1a1a" stroke="#ef4444" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="30" y="275" fill="#ef4444" font-size="13" font-weight="bold">STEP 3: kubectl apply -f deployment.yaml — NOTHING HAPPENS! 😤</text>
+    <text x="30" y="300" fill="#e2e8f0" font-size="12">K8s compares old YAML vs new YAML → <tspan fill="#ef4444" font-weight="bold">identical!</tspan> Image is still "my-app:latest"</text>
+    <text x="30" y="320" fill="#fb923c" font-size="12">K8s thinks: "Nothing changed in the spec → no need to restart pods"</text>
+    <text x="30" y="343" fill="#94a3b8" font-size="11">The node already has the image cached locally → kubelet uses the <tspan fill="#ef4444">OLD cached image</tspan>, not your new one!</text>
+
+    <!-- Big X -->
+    <circle cx="840" cy="300" r="18" fill="none" stroke="#ef4444" stroke-width="3">
+      <animate attributeName="r" values="15;22;15" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <text x="832" y="306" fill="#ef4444" font-size="18" font-weight="bold">✗</text>
+
+    <!-- The "why" summary -->
+    <rect x="10" y="375" width="860" height="110" rx="10" fill="#0d1117" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="30" y="400" fill="#fb923c" font-size="13" font-weight="bold">WHY THIS HAPPENS — Two Problems Combined:</text>
+
+    <rect x="30" y="412" width="400" height="30" rx="4" fill="#3a1a1a" stroke="#ef4444"/>
+    <text x="42" y="432" fill="#ef4444" font-size="11" font-weight="bold">Problem 1: YAML didn't change</text>
+    <text x="260" y="432" fill="#94a3b8" font-size="11">→ K8s sees no diff → no rollout</text>
+
+    <rect x="30" y="450" width="400" height="30" rx="4" fill="#3a1a1a" stroke="#ef4444"/>
+    <text x="42" y="470" fill="#ef4444" font-size="11" font-weight="bold">Problem 2: imagePullPolicy: IfNotPresent</text>
+    <text x="310" y="470" fill="#94a3b8" font-size="11">→ uses cached image</text>
+
+    <!-- Solutions hint -->
+    <rect x="460" y="412" width="390" height="68" rx="6" fill="#1a3a2a" stroke="#34d399"/>
+    <text x="475" y="432" fill="#34d399" font-size="11" font-weight="bold">SOLUTIONS (explained below ↓):</text>
+    <text x="475" y="452" fill="#e2e8f0" font-size="11">1. Use unique tags (v1.0.1, v1.0.2...)</text>
+    <text x="475" y="470" fill="#e2e8f0" font-size="11">2. Set imagePullPolicy: Always</text>
+  </svg>
+</div>
+
+<h3>6.2 The 5 Solutions — From Best to Worst</h3>
+
+<div class="diagram">
+  <div class="diagram-title">Animated: All Solutions Compared</div>
+  <svg viewBox="0 0 880 580" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:880px;">
+
+    <!-- SOLUTION 1: Unique tags (BEST) -->
+    <rect x="10" y="10" width="860" height="95" rx="10" fill="#1a3a2a" stroke="#34d399" stroke-width="2" style="animation:glowGreen 4s infinite"/>
+    <rect x="20" y="18" width="90" height="22" rx="4" fill="#34d399"/>
+    <text x="30" y="34" fill="#000" font-size="11" font-weight="bold">★ BEST FIX</text>
+    <text x="125" y="35" fill="#34d399" font-size="13" font-weight="bold">Solution 1: Use Unique Image Tags</text>
+    <text x="30" y="58" fill="#e2e8f0" font-size="12">image: my-app:<tspan fill="#ef4444" text-decoration="line-through">latest</tspan>  →  image: my-app:<tspan fill="#34d399" font-weight="bold">v1.0.2</tspan>  or  image: my-app:<tspan fill="#34d399" font-weight="bold">abc123f</tspan> (git commit hash)</text>
+    <text x="30" y="78" fill="#94a3b8" font-size="11">YAML changes → K8s sees a diff → triggers rolling update → pulls new image. Problem solved forever!</text>
+    <text x="30" y="95" fill="#34d399" font-size="11" font-weight="bold">CI/CD should auto-tag: docker build -t my-app:$(git rev-parse --short HEAD) .</text>
+
+    <!-- Animated rolling update arrows -->
+    <g>
+      <rect x="740" y="25" width="55" height="25" rx="4" fill="#ef4444" opacity="0.5"/>
+      <text x="748" y="42" fill="#fff" font-size="9">v1.0.1</text>
+      <rect x="800" y="25" width="55" height="25" rx="4" fill="#34d399">
+        <animate attributeName="opacity" values="0;1" dur="1s" fill="freeze"/>
+      </rect>
+      <text x="808" y="42" fill="#000" font-size="9" font-weight="bold">v1.0.2</text>
+      <line x1="795" y1="37" x2="800" y2="37" stroke="#34d399" stroke-width="2" class="animated-dash"/>
+    </g>
+
+    <!-- SOLUTION 2: rollout restart -->
+    <rect x="10" y="115" width="860" height="85" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <rect x="20" y="123" width="90" height="22" rx="4" fill="#38bdf8"/>
+    <text x="32" y="138" fill="#000" font-size="11" font-weight="bold">QUICK FIX</text>
+    <text x="125" y="140" fill="#38bdf8" font-size="13" font-weight="bold">Solution 2: kubectl rollout restart</text>
+    <text x="30" y="163" fill="#e2e8f0" font-size="12">kubectl rollout restart deployment/<tspan fill="#38bdf8">my-app</tspan></text>
+    <text x="30" y="183" fill="#94a3b8" font-size="11">Forces K8s to recreate all pods (rolling update). New pods pull the latest image. No downtime.</text>
+
+    <!-- Animated pod restart cycle -->
+    <rect x="720" y="130" width="45" height="25" rx="4" fill="#ef4444" opacity="0.7"><animate attributeName="opacity" values="0.7;0" dur="1.5s" repeatCount="indefinite"/></rect>
+    <text x="728" y="147" fill="#fff" font-size="9">old</text>
+    <rect x="775" y="130" width="45" height="25" rx="4" fill="#34d399"><animate attributeName="opacity" values="0;1" dur="1.5s" repeatCount="indefinite"/></rect>
+    <text x="783" y="147" fill="#000" font-size="9">new</text>
+    <text x="830" y="147" fill="#94a3b8" font-size="10">🔄</text>
+
+    <!-- SOLUTION 3: imagePullPolicy Always -->
+    <rect x="10" y="210" width="860" height="85" rx="10" fill="#1e293b" stroke="#fb923c" stroke-width="1.5"/>
+    <rect x="20" y="218" width="90" height="22" rx="4" fill="#fb923c"/>
+    <text x="30" y="234" fill="#000" font-size="11" font-weight="bold">OPTION 3</text>
+    <text x="125" y="235" fill="#fb923c" font-size="13" font-weight="bold">Solution 3: imagePullPolicy: Always</text>
+
+    <text x="30" y="258" fill="#e2e8f0" font-size="12">containers:</text>
+    <text x="30" y="276" fill="#e2e8f0" font-size="12">- image: my-app:latest</text>
+    <text x="250" y="276" fill="#fb923c" font-size="12" font-weight="bold">imagePullPolicy: Always</text>
+    <text x="30" y="290" fill="#94a3b8" font-size="11">Every pod restart pulls from registry. Slower startup but always gets the latest. Still needs rollout restart though!</text>
+
+    <!-- SOLUTION 4: delete + apply -->
+    <rect x="10" y="305" width="860" height="85" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+    <rect x="20" y="313" width="90" height="22" rx="4" fill="#a78bfa"/>
+    <text x="25" y="328" fill="#000" font-size="11" font-weight="bold">BRUTE FORCE</text>
+    <text x="125" y="330" fill="#a78bfa" font-size="13" font-weight="bold">Solution 4: Delete and Recreate (what you're doing now)</text>
+
+    <text x="30" y="353" fill="#e2e8f0" font-size="12">kubectl delete deployment my-app && kubectl apply -f deployment.yaml</text>
+    <text x="30" y="373" fill="#ef4444" font-size="11" font-weight="bold">⚠️ CAUSES DOWNTIME!</text>
+    <text x="230" y="373" fill="#94a3b8" font-size="11">All pods are killed at once → gap where no pods serve traffic → new pods start.</text>
+    <text x="30" y="388" fill="#94a3b8" font-size="11">This works but is the worst option. Use rollout restart instead for zero downtime.</text>
+
+    <!-- Downtime visualization -->
+    <rect x="680" y="345" width="170" height="40" rx="6" fill="#3a1a1a" stroke="#ef4444"/>
+    <rect x="690" y="355" width="30" height="20" rx="3" fill="#34d399"/>
+    <rect x="725" y="355" width="50" height="20" rx="3" fill="#ef4444"><animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/></rect>
+    <text x="731" y="369" fill="#fff" font-size="8">DOWN</text>
+    <rect x="780" y="355" width="30" height="20" rx="3" fill="#34d399"/>
+    <text x="820" y="369" fill="#94a3b8" font-size="9">←gap!</text>
+
+    <!-- SOLUTION 5: Proper CI/CD -->
+    <rect x="10" y="400" width="860" height="85" rx="10" fill="#162032" stroke="#f472b6" stroke-width="1.5"/>
+    <rect x="20" y="408" width="90" height="22" rx="4" fill="#f472b6"/>
+    <text x="25" y="423" fill="#000" font-size="11" font-weight="bold">PRO LEVEL</text>
+    <text x="125" y="425" fill="#f472b6" font-size="13" font-weight="bold">Solution 5: Full CI/CD Pipeline (Eliminate Manual Steps)</text>
+
+    <text x="30" y="448" fill="#e2e8f0" font-size="11">Git push → CI builds image with commit SHA tag → Updates deployment.yaml → ArgoCD syncs to cluster</text>
+    <text x="30" y="468" fill="#94a3b8" font-size="11">You never run kubectl apply manually. Every change gets a unique tag automatically. Zero human error.</text>
+    <text x="30" y="483" fill="#f472b6" font-size="11" font-weight="bold">Tools: GitHub Actions + ArgoCD, or GitLab CI + Flux</text>
+
+    <!-- Summary ranking -->
+    <rect x="10" y="500" width="860" height="70" rx="10" fill="#0d1117" stroke="#475569"/>
+    <text x="30" y="525" fill="#38bdf8" font-size="13" font-weight="bold">Ranking: Best → Worst</text>
+    <text x="30" y="548" fill="#34d399" font-size="12">★ Unique tags</text>
+    <text x="160" y="548" fill="#94a3b8" font-size="14">></text>
+    <text x="180" y="548" fill="#f472b6" font-size="12">CI/CD pipeline</text>
+    <text x="310" y="548" fill="#94a3b8" font-size="14">></text>
+    <text x="330" y="548" fill="#38bdf8" font-size="12">rollout restart</text>
+    <text x="480" y="548" fill="#94a3b8" font-size="14">></text>
+    <text x="500" y="548" fill="#fb923c" font-size="12">imagePullPolicy: Always</text>
+    <text x="700" y="548" fill="#94a3b8" font-size="14">></text>
+    <text x="720" y="548" fill="#ef4444" font-size="12">delete + recreate ✗</text>
+    <text x="30" y="565" fill="#94a3b8" font-size="10">(In practice, use unique tags + CI/CD. Use rollout restart only for emergencies.)</text>
+  </svg>
+</div>
+
+<h3>6.3 Interactive: Simulate the Update Problem</h3>
+<p>Click through to experience the exact issue you face and see each solution in action:</p>
+
+<div class="diagram" id="cache-sim-container">
+  <div class="diagram-title">Deployment Update Simulator</div>
+  <svg viewBox="0 0 800 240" id="cacheSvg" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+
+    <!-- Registry -->
+    <rect x="10" y="10" width="180" height="80" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="30" y="35" fill="#a78bfa" font-size="12" font-weight="bold">🐳 Registry</text>
+    <text x="30" y="55" fill="#e2e8f0" font-size="11" id="cache-registry-tag">my-app:latest</text>
+    <text x="30" y="75" fill="#94a3b8" font-size="10" id="cache-registry-ver">Image v1 (old code)</text>
+
+    <!-- Node cache -->
+    <rect x="240" y="10" width="180" height="80" rx="10" fill="#1e293b" stroke="#fb923c" stroke-width="1.5" id="cache-node-box"/>
+    <text x="260" y="35" fill="#fb923c" font-size="12" font-weight="bold">💾 Node Cache</text>
+    <text x="260" y="55" fill="#e2e8f0" font-size="11" id="cache-node-tag">my-app:latest</text>
+    <text x="260" y="75" fill="#94a3b8" font-size="10" id="cache-node-ver">Image v1 (cached)</text>
+
+    <!-- Arrow registry → node -->
+    <line x1="190" y1="50" x2="240" y2="50" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="6 3" id="cache-pull-line"/>
+
+    <!-- Deployment YAML -->
+    <rect x="470" y="10" width="200" height="80" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="490" y="35" fill="#38bdf8" font-size="12" font-weight="bold">📄 deployment.yaml</text>
+    <text x="490" y="55" fill="#e2e8f0" font-size="11" id="cache-yaml-tag">image: my-app:latest</text>
+    <text x="490" y="75" fill="#94a3b8" font-size="10" id="cache-yaml-policy">pullPolicy: IfNotPresent</text>
+
+    <!-- Pods -->
+    <rect x="10" y="120" width="160" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5" id="cache-pod1"/>
+    <text x="30" y="145" fill="#34d399" font-size="11" font-weight="bold">Pod 1</text>
+    <text x="30" y="163" fill="#94a3b8" font-size="10" id="cache-pod1-text">Running v1 (old)</text>
+    <circle id="cache-pod1-dot" cx="150" cy="147" r="5" fill="#34d399"/>
+
+    <rect x="190" y="120" width="160" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5" id="cache-pod2"/>
+    <text x="210" y="145" fill="#34d399" font-size="11" font-weight="bold">Pod 2</text>
+    <text x="210" y="163" fill="#94a3b8" font-size="10" id="cache-pod2-text">Running v1 (old)</text>
+    <circle id="cache-pod2-dot" cx="330" cy="147" r="5" fill="#34d399"/>
+
+    <rect x="390" y="120" width="160" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5" id="cache-pod3"/>
+    <text x="410" y="145" fill="#34d399" font-size="11" font-weight="bold">Pod 3</text>
+    <text x="410" y="163" fill="#94a3b8" font-size="10" id="cache-pod3-text">Running v1 (old)</text>
+    <circle id="cache-pod3-dot" cx="530" cy="147" r="5" fill="#34d399"/>
+
+    <!-- Status bar -->
+    <rect x="10" y="195" width="660" height="35" rx="6" fill="#0d1117" stroke="#475569"/>
+    <text x="25" y="217" fill="#94a3b8" font-size="12" id="cache-status-text">Ready. Push new image then try kubectl apply...</text>
+
+    <!-- K8s decision -->
+    <rect x="590" y="120" width="200" height="55" rx="8" fill="#0d1117" stroke="#475569" id="cache-k8s-decision"/>
+    <text x="610" y="140" fill="#94a3b8" font-size="10" font-weight="bold">K8s Decision Engine:</text>
+    <text x="610" y="158" fill="#94a3b8" font-size="10" id="cache-k8s-text">Waiting...</text>
+  </svg>
+
+  <div style="margin-top:15px; display:flex; flex-wrap:wrap; gap:6px;">
+    <button class="sim-btn" onclick="cachePushImage()" style="background:#a78bfa;color:#000">🐳 Push New Image (:latest)</button>
+    <button class="sim-btn" onclick="cacheApply()">📄 kubectl apply</button>
+    <button class="sim-btn danger" onclick="cacheDelete()">💥 delete + apply</button>
+    <button class="sim-btn success" onclick="cacheRollout()">🔄 rollout restart</button>
+    <button class="sim-btn" onclick="cacheUniqueTag()" style="background:#34d399;color:#000">★ Use Unique Tag</button>
+    <button class="sim-btn" onclick="cacheReset()" style="background:#475569;color:#fff">Reset</button>
+  </div>
+  <div class="sim-status" id="cache-sim-log">Simulate the exact problem you face: push a new image, then try different update methods...</div>
+</div>
+
+<h3>6.4 The imagePullPolicy Explained</h3>
+<table>
+  <tr><th>Policy</th><th>When Does K8s Pull?</th><th>Default For</th><th>Use When</th></tr>
+  <tr><td><code style="color:#34d399">Always</code></td><td>Every time a pod starts</td><td>tag = <code>latest</code> or no tag</td><td>Dev environments where you reuse tags</td></tr>
+  <tr><td><code style="color:#fb923c">IfNotPresent</code></td><td>Only if image not in node cache</td><td>Any specific tag (v1.0, abc123)</td><td>Production with unique tags (default &amp; best)</td></tr>
+  <tr><td><code style="color:#ef4444">Never</code></td><td>Never pulls — must be pre-loaded</td><td>Nothing</td><td>Air-gapped environments only</td></tr>
+</table>
+
+<div class="warn-box">
+  <div class="warn-title">The "latest" Tag Trap</div>
+  When you use <code>:latest</code>, K8s sets <code>imagePullPolicy: Always</code> by default. BUT if the YAML doesn't change, <code>kubectl apply</code> won't trigger a new rollout at all — so the "Always" pull policy never gets a chance to run! That's why <code>rollout restart</code> is needed.
+</div>
+
+<h3>6.5 ConfigMap/Secret Changes — Same Problem!</h3>
+<p>Updating a ConfigMap or Secret also does NOT restart pods automatically:</p>
+
+<pre><code><span class="cm"># You update a ConfigMap:</span>
+kubectl edit configmap app-config    <span class="cm"># change some values</span>
+
+<span class="cm"># Pods still use OLD config! Need to restart:</span>
+kubectl rollout restart deployment/my-app
+
+<span class="cm"># PRO TIP: Use a hash annotation to auto-trigger updates!</span>
+<span class="kw">spec:</span>
+  <span class="key">template:</span>
+    <span class="key">metadata:</span>
+      <span class="key">annotations:</span>
+        <span class="key">configHash:</span> <span class="str">"{{ sha256sum of configmap }}"</span>   <span class="cm"># changes when config changes!</span>
+        <span class="cm"># Helm can do this automatically with:</span>
+        <span class="cm"># checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}</span></code></pre>
+
+<div class="tip">
+  <div class="tip-title">Your Action Plan — Stop Deleting Deployments!</div>
+  <strong>Right now:</strong> Use <code>kubectl rollout restart deployment/my-app</code> instead of delete + apply. Zero downtime.<br>
+  <strong>This week:</strong> Switch from <code>:latest</code> to unique tags like <code>:v1.0.1</code> or <code>:$(git rev-parse --short HEAD)</code><br>
+  <strong>This month:</strong> Set up a CI/CD pipeline that auto-tags images. Never touch kubectl manually again.
+</div>
+</section>
+
+<!-- ===================== VOLUMES ===================== -->
+<section id="volumes" class="fade-in">
+<h2>7. Volumes & Mounts — Where Data Lives</h2>
+
+<div class="diagram">
+  <div class="diagram-title">Animated Volume Mount Flow</div>
+  <svg viewBox="0 0 750 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:750px;">
+    <rect x="10" y="10" width="480" height="260" rx="12" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <text x="30" y="38" fill="#34d399" font-size="14" font-weight="bold">Pod</text>
+
+    <rect x="30" y="55" width="250" height="195" rx="8" fill="#0d1117" stroke="#38bdf8"/>
+    <text x="45" y="80" fill="#38bdf8" font-size="12" font-weight="bold">Container: my-app</text>
+    <text x="45" y="100" fill="#94a3b8" font-size="11">Filesystem:</text>
+    <text x="45" y="120" fill="#e2e8f0" font-size="11">/app  ← code (ephemeral)</text>
+    <text x="45" y="140" fill="#e2e8f0" font-size="11">/tmp  ← temp (ephemeral)</text>
+
+    <!-- Persistent mount - animated glow -->
+    <rect x="45" y="150" width="220" height="35" rx="4" fill="#1a3a2a" stroke="#34d399" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="55" y="173" fill="#34d399" font-size="12" font-weight="bold">/data ← PVC mount ✓ PERSISTS</text>
+
+    <!-- Config mount -->
+    <rect x="45" y="195" width="220" height="35" rx="4" fill="#3a2a1a" stroke="#fb923c" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="55" y="218" fill="#fb923c" font-size="12" font-weight="bold">/config ← ConfigMap mount</text>
+
+    <!-- Volume definitions -->
+    <rect x="300" y="60" width="170" height="95" rx="8" fill="#162032" stroke="#f472b6"/>
+    <text x="315" y="82" fill="#f472b6" font-size="11" font-weight="bold">volumes:</text>
+    <text x="315" y="102" fill="#94a3b8" font-size="10">- name: data-vol</text>
+    <text x="315" y="118" fill="#94a3b8" font-size="10">  → PVC</text>
+    <text x="315" y="138" fill="#94a3b8" font-size="10">- name: config-vol</text>
+    <text x="315" y="154" fill="#94a3b8" font-size="10">  → ConfigMap</text>
+
+    <!-- Animated connection lines -->
+    <path d="M265,167 Q290,167 305,110" stroke="#34d399" stroke-width="1.5" fill="none" class="animated-dash"/>
+    <path d="M265,212 Q290,212 305,140" stroke="#fb923c" stroke-width="1.5" fill="none" class="animated-dash"/>
+
+    <!-- PVC with glow -->
+    <rect x="540" y="20" width="190" height="80" rx="8" fill="#1e293b" stroke="#f472b6" stroke-width="2" style="animation:glowPink 3s infinite"/>
+    <text x="560" y="48" fill="#f472b6" font-size="12" font-weight="bold">PVC: data-pvc</text>
+    <text x="560" y="68" fill="#94a3b8" font-size="11">Request: 5Gi</text>
+    <text x="560" y="85" fill="#94a3b8" font-size="11">→ Bound to PV</text>
+    <line x1="490" y1="100" x2="540" y2="60" stroke="#f472b6" stroke-width="2" class="animated-dash"/>
+
+    <!-- Data write animation -->
+    <rect x="560" y="10" width="40" height="14" rx="3" fill="#34d399" opacity="0.3">
+      <animate attributeName="opacity" values="0.1;0.8;0.1" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="565" y="21" fill="#fff" font-size="8">I/O</text>
+
+    <!-- ConfigMap -->
+    <rect x="540" y="130" width="190" height="70" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="2"/>
+    <text x="560" y="155" fill="#fb923c" font-size="12" font-weight="bold">ConfigMap: app-cfg</text>
+    <text x="560" y="175" fill="#94a3b8" font-size="11">app.conf → /config/</text>
+    <text x="560" y="192" fill="#94a3b8" font-size="11">Each key = a file</text>
+    <line x1="490" y1="140" x2="540" y2="165" stroke="#fb923c" stroke-width="2" class="animated-dash"/>
+  </svg>
+</div>
+
+<h3>Volume Types</h3>
+<table>
+  <tr><th>Type</th><th>Use Case</th><th>Survives Restart?</th><th>Survives Delete?</th></tr>
+  <tr><td><code>emptyDir</code></td><td>Temp scratch, share between containers</td><td>✅</td><td>❌</td></tr>
+  <tr><td><code>hostPath</code></td><td>Mount host directory</td><td>✅</td><td>✅ (same node)</td></tr>
+  <tr><td><code>persistentVolumeClaim</code></td><td>Database, stateful apps</td><td>✅</td><td>✅</td></tr>
+  <tr><td><code>configMap</code></td><td>Config files</td><td>✅</td><td>N/A</td></tr>
+  <tr><td><code>secret</code></td><td>Passwords, certs</td><td>✅</td><td>N/A</td></tr>
+</table>
+
+<pre><code><span class="cm"># Two-step process: 1) Define volume, 2) Mount it</span>
+<span class="kw">spec:</span>
+  <span class="key">containers:</span>
+  - <span class="key">name:</span> <span class="str">my-app</span>
+    <span class="key">volumeMounts:</span>                    <span class="cm"># STEP 2: WHERE to mount</span>
+    - <span class="key">name:</span> <span class="str">data-vol</span>               <span class="cm"># ← references by name</span>
+      <span class="key">mountPath:</span> <span class="str">/data</span>
+    - <span class="key">name:</span> <span class="str">config-vol</span>
+      <span class="key">mountPath:</span> <span class="str">/config</span>
+      <span class="key">readOnly:</span> <span class="val">true</span>
+  <span class="key">volumes:</span>                            <span class="cm"># STEP 1: WHAT to mount</span>
+  - <span class="key">name:</span> <span class="str">data-vol</span>
+    <span class="key">persistentVolumeClaim:</span>
+      <span class="key">claimName:</span> <span class="str">data-pvc</span>
+  - <span class="key">name:</span> <span class="str">config-vol</span>
+    <span class="key">configMap:</span>
+      <span class="key">name:</span> <span class="str">app-config</span></code></pre>
+
+<div class="tip">
+  <div class="tip-title">Mental Model</div>
+  <strong>1) Define the volume</strong> (in <code>spec.volumes</code>) → <strong>2) Mount it</strong> (in <code>volumeMounts</code>). The <code>name</code> connects them — like plugging a USB drive into a folder.
+</div>
+</section>
+
+<!-- ===================== PV & PVC ===================== -->
+<section id="pv-pvc" class="fade-in">
+<h2>7. PV & PVC — Hotel Reservation Analogy</h2>
+
+<div class="diagram">
+  <div class="diagram-title">Animated Binding Process</div>
+  <svg viewBox="0 0 800 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <rect x="10" y="15" width="100" height="50" rx="8" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="22" y="44" fill="#a78bfa" font-size="12">👤 Admin</text>
+    <line x1="110" y1="40" x2="170" y2="40" stroke="#a78bfa" stroke-width="1.5" class="animated-dash" marker-end="url(#arrowBlue)"/>
+
+    <rect x="170" y="5" width="200" height="80" rx="10" fill="#1e293b" stroke="#f472b6" stroke-width="2" style="animation:glowPink 3s infinite"/>
+    <text x="195" y="32" fill="#f472b6" font-size="13" font-weight="bold">PersistentVolume</text>
+    <text x="195" y="52" fill="#94a3b8" font-size="11">capacity: 10Gi</text>
+    <text x="195" y="69" fill="#94a3b8" font-size="11">🏨 Hotel Room</text>
+
+    <!-- Animated binding -->
+    <rect x="390" y="25" width="60" height="30" rx="6" fill="#1a3a2a" stroke="#34d399" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="398" y="45" fill="#34d399" font-size="12" font-weight="bold">BIND</text>
+    <line x1="370" y1="40" x2="390" y2="40" stroke="#34d399" stroke-width="2" class="animated-dash"/>
+    <line x1="450" y1="40" x2="470" y2="40" stroke="#34d399" stroke-width="2" class="animated-dash"/>
+
+    <rect x="470" y="5" width="200" height="80" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <text x="490" y="32" fill="#38bdf8" font-size="13" font-weight="bold">PersistentVolumeClaim</text>
+    <text x="490" y="52" fill="#94a3b8" font-size="11">request: 5Gi</text>
+    <text x="490" y="69" fill="#94a3b8" font-size="11">📋 Reservation</text>
+
+    <rect x="690" y="15" width="100" height="50" rx="8" fill="#2d2b55" stroke="#38bdf8"/>
+    <text x="707" y="44" fill="#38bdf8" font-size="12">👤 Dev</text>
+    <line x1="690" y1="40" x2="670" y2="40" stroke="#38bdf8" stroke-width="1.5" class="animated-dash-reverse"/>
+
+    <g style="animation: float 4s ease-in-out infinite">
+      <rect x="470" y="110" width="200" height="60" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="495" y="138" fill="#34d399" font-size="12" font-weight="bold">Pod — the Guest</text>
+      <text x="495" y="158" fill="#94a3b8" font-size="11">claimName: my-pvc</text>
+    </g>
+    <line x1="570" y1="110" x2="570" y2="85" stroke="#34d399" stroke-width="1.5" class="animated-dash"/>
+
+    <text x="10" y="130" fill="#94a3b8" font-size="12" font-style="italic">PV = 🏨 Room  |  PVC = 📋 Reservation  |  Pod = 🧳 Guest</text>
+  </svg>
+</div>
+</section>
+
+<!-- ===================== STORAGE CLASS ===================== -->
+<section id="storage-classes" class="fade-in">
+<h2>8. StorageClass — Auto Provisioning</h2>
+<div class="flow">
+  <div class="flow-step" style="border-color:var(--accent2)">Dev creates PVC<br><small>with storageClassName</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent)">StorageClass<br><small>provisioner: aws-ebs</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent3)">PV auto-created</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent4)">PVC bound ✓</div>
+</div>
+</section>
+
+<!-- ===================== CONFIGMAP ===================== -->
+<section id="configmap" class="fade-in">
+<h2>9. ConfigMap</h2>
+<div class="vs-grid">
+  <div class="vs-box">
+    <h4 style="color:var(--accent)">As Environment Variables</h4>
+    <pre><code><span class="key">env:</span>
+- <span class="key">name:</span> <span class="str">DB_HOST</span>
+  <span class="key">valueFrom:</span>
+    <span class="key">configMapKeyRef:</span>
+      <span class="key">name:</span> <span class="str">app-config</span>
+      <span class="key">key:</span> <span class="str">database_host</span></code></pre>
+  </div>
+  <div class="vs-box">
+    <h4 style="color:var(--accent3)">As Mounted Files</h4>
+    <pre><code><span class="key">volumeMounts:</span>
+- <span class="key">name:</span> <span class="str">cfg</span>
+  <span class="key">mountPath:</span> <span class="str">/etc/config</span>
+<span class="key">volumes:</span>
+- <span class="key">name:</span> <span class="str">cfg</span>
+  <span class="key">configMap:</span>
+    <span class="key">name:</span> <span class="str">app-config</span></code></pre>
+  </div>
+</div>
+</section>
+
+<!-- ===================== SECRETS ===================== -->
+<section id="secrets" class="fade-in">
+<h2>10. Secrets</h2>
+<div class="warn-box">
+  <div class="warn-title">Security Warning</div>
+  Base64 ≠ encryption! Use <strong>Sealed Secrets</strong>, <strong>Vault</strong>, or <strong>External Secrets Operator</strong> in production.
+</div>
+
+<pre><code><span class="cm"># Create</span>
+kubectl create secret generic db-creds \
+  --from-literal=username=admin \
+  --from-literal=password=supersecret123
+
+<span class="cm"># Use as env var</span>
+<span class="key">env:</span>
+- <span class="key">name:</span> <span class="str">DB_PASSWORD</span>
+  <span class="key">valueFrom:</span>
+    <span class="key">secretKeyRef:</span>
+      <span class="key">name:</span> <span class="str">db-creds</span>
+      <span class="key">key:</span> <span class="str">password</span>
+
+<span class="cm"># Or mount as files (each key = file)</span>
+<span class="key">volumeMounts:</span>
+- <span class="key">name:</span> <span class="str">secret-vol</span>
+  <span class="key">mountPath:</span> <span class="str">/etc/secrets</span>
+  <span class="key">readOnly:</span> <span class="val">true</span></code></pre>
+</section>
+
+<!-- ===================== NETWORKING DEEP DIVE ===================== -->
+<section id="networking" class="fade-in">
+<h2>11. Networking Deep Dive — How Services Talk to Deployments</h2>
+<p>This is the most confusing part of Kubernetes, so let's go layer by layer. Every Pod gets its own IP address, and every Service gets a stable virtual IP (ClusterIP). Here's exactly how traffic flows.</p>
+
+<h3>11.1 The Full Request Lifecycle — Step by Step</h3>
+<div class="diagram">
+  <div class="diagram-title">Animated: Complete Request Journey (External → Pod)</div>
+  <svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;">
+
+    <!-- Step labels on left -->
+    <text x="5" y="52" fill="#a78bfa" font-size="11" font-weight="bold">STEP 1</text>
+    <text x="5" y="142" fill="#38bdf8" font-size="11" font-weight="bold">STEP 2</text>
+    <text x="5" y="242" fill="#fb923c" font-size="11" font-weight="bold">STEP 3</text>
+    <text x="5" y="342" fill="#34d399" font-size="11" font-weight="bold">STEP 4</text>
+    <text x="5" y="442" fill="#f472b6" font-size="11" font-weight="bold">STEP 5</text>
+
+    <!-- STEP 1: User sends request -->
+    <rect x="70" y="25" width="800" height="70" rx="10" fill="#1a1a3e" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="90" y="50" fill="#a78bfa" font-size="13" font-weight="bold">User sends: http://app.example.com/api/users</text>
+    <text x="90" y="72" fill="#94a3b8" font-size="11">Browser resolves DNS → gets the LoadBalancer / Ingress external IP → sends HTTP request</text>
+    <!-- Packet -->
+    <circle r="6" fill="#a78bfa">
+      <animate attributeName="cx" values="80;870" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="60;60" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- STEP 2: Ingress Controller -->
+    <rect x="70" y="115" width="800" height="75" rx="10" fill="#162032" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="90" y="140" fill="#38bdf8" font-size="13" font-weight="bold">Ingress Controller receives request</text>
+    <text x="90" y="160" fill="#94a3b8" font-size="11">Matches host: app.example.com, path: /api/* → routes to <tspan fill="#fb923c">api-svc</tspan> Service on port 80</text>
+    <text x="90" y="177" fill="#94a3b8" font-size="11">Terminates TLS (HTTPS → HTTP inside cluster). Adds headers: X-Forwarded-For, X-Real-IP</text>
+
+    <rect x="680" y="125" width="170" height="50" rx="6" fill="#0d1117" stroke="#38bdf8">
+      <animate attributeName="stroke-opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="695" y="148" fill="#38bdf8" font-size="11" font-weight="bold">nginx-ingress pod</text>
+    <text x="695" y="165" fill="#94a3b8" font-size="10">or traefik / HAProxy</text>
+
+    <!-- Arrow down -->
+    <line x1="450" y1="190" x2="450" y2="215" stroke="#38bdf8" stroke-width="2" class="animated-dash" marker-end="url(#arrowBlue)"/>
+    <circle r="5" fill="#38bdf8"><animate attributeName="cx" values="450;450" dur="1s" repeatCount="indefinite"/><animate attributeName="cy" values="190;215" dur="1s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="1s" repeatCount="indefinite"/></circle>
+
+    <!-- STEP 3: Service (kube-proxy + iptables) -->
+    <rect x="70" y="215" width="800" height="90" rx="10" fill="#1e293b" stroke="#fb923c" stroke-width="1.5" style="animation:glowOrange 4s infinite"/>
+    <text x="90" y="240" fill="#fb923c" font-size="13" font-weight="bold">Service: api-svc (ClusterIP: 10.96.45.12:80)</text>
+    <text x="90" y="260" fill="#94a3b8" font-size="11">kube-proxy on every node maintains <tspan fill="#fb923c">iptables rules</tspan> (or IPVS) that intercept traffic to 10.96.45.12</text>
+    <text x="90" y="278" fill="#94a3b8" font-size="11">The Service is NOT a process — it's a set of network rules! kube-proxy watches the API server for Endpoint changes.</text>
+    <text x="90" y="296" fill="#e2e8f0" font-size="11">selector: <tspan fill="#34d399">app=api</tspan> → finds all pods with this label → creates <tspan fill="#fb923c">Endpoints</tspan> list of Pod IPs</text>
+
+    <!-- kube-proxy detail -->
+    <rect x="680" y="235" width="170" height="55" rx="6" fill="#0d1117" stroke="#fb923c"/>
+    <text x="695" y="255" fill="#fb923c" font-size="11" font-weight="bold">kube-proxy</text>
+    <text x="695" y="272" fill="#94a3b8" font-size="10">iptables: DNAT to</text>
+    <text x="695" y="285" fill="#94a3b8" font-size="10">random pod IP</text>
+
+    <!-- Arrow down splits to pods -->
+    <line x1="350" y1="305" x2="200" y2="340" stroke="#34d399" stroke-width="2" class="animated-dash" marker-end="url(#arrowGreen)"/>
+    <line x1="450" y1="305" x2="450" y2="340" stroke="#34d399" stroke-width="2" class="animated-dash" marker-end="url(#arrowGreen)"/>
+    <line x1="550" y1="305" x2="700" y2="340" stroke="#34d399" stroke-width="2" class="animated-dash" marker-end="url(#arrowGreen)"/>
+
+    <!-- Animated load-balancing packets -->
+    <circle r="5" fill="#34d399"><animate attributeName="cx" values="350;200" dur="1.2s" repeatCount="indefinite"/><animate attributeName="cy" values="305;340" dur="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="1.2s" repeatCount="indefinite"/></circle>
+    <circle r="5" fill="#34d399"><animate attributeName="cx" values="450;450" dur="1.4s" repeatCount="indefinite" begin="0.4s"/><animate attributeName="cy" values="305;340" dur="1.4s" repeatCount="indefinite" begin="0.4s"/><animate attributeName="opacity" values="0;1;0" dur="1.4s" repeatCount="indefinite" begin="0.4s"/></circle>
+    <circle r="5" fill="#34d399"><animate attributeName="cx" values="550;700" dur="1.3s" repeatCount="indefinite" begin="0.8s"/><animate attributeName="cy" values="305;340" dur="1.3s" repeatCount="indefinite" begin="0.8s"/><animate attributeName="opacity" values="0;1;0" dur="1.3s" repeatCount="indefinite" begin="0.8s"/></circle>
+
+    <text x="380" y="330" fill="#94a3b8" font-size="10">⚖️ Random / Round-Robin</text>
+
+    <!-- STEP 4: Pods -->
+    <rect x="70" y="340" width="230" height="75" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="90" y="365" fill="#34d399" font-size="12" font-weight="bold">Pod 1: 10.244.1.5:8080</text>
+    <text x="90" y="385" fill="#94a3b8" font-size="10">Node 1 | container: api-app</text>
+    <text x="90" y="400" fill="#94a3b8" font-size="10">labels: app=api ✓</text>
+    <circle cx="280" cy="370" r="6" fill="#34d399"><animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/></circle>
+
+    <rect x="335" y="340" width="230" height="75" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="355" y="365" fill="#34d399" font-size="12" font-weight="bold">Pod 2: 10.244.2.8:8080</text>
+    <text x="355" y="385" fill="#94a3b8" font-size="10">Node 2 | container: api-app</text>
+    <text x="355" y="400" fill="#94a3b8" font-size="10">labels: app=api ✓</text>
+    <circle cx="545" cy="370" r="6" fill="#34d399"><animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite" begin="0.6s"/><animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite" begin="0.6s"/></circle>
+
+    <rect x="600" y="340" width="230" height="75" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="620" y="365" fill="#34d399" font-size="12" font-weight="bold">Pod 3: 10.244.1.9:8080</text>
+    <text x="620" y="385" fill="#94a3b8" font-size="10">Node 1 | container: api-app</text>
+    <text x="620" y="400" fill="#94a3b8" font-size="10">labels: app=api ✓</text>
+    <circle cx="810" cy="370" r="6" fill="#34d399"><animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite" begin="1.2s"/><animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite" begin="1.2s"/></circle>
+
+    <!-- STEP 5: Response travels back -->
+    <rect x="70" y="435" width="800" height="65" rx="10" fill="#0d1117" stroke="#f472b6" stroke-width="1.5"/>
+    <text x="90" y="460" fill="#f472b6" font-size="13" font-weight="bold">Response travels back through the same path (reverse NAT)</text>
+    <text x="90" y="480" fill="#94a3b8" font-size="11">Pod → kube-proxy (SNAT rewrites source IP) → Ingress → User sees response from app.example.com</text>
+    <!-- Return packet -->
+    <circle r="5" fill="#f472b6">
+      <animate attributeName="cx" values="850;90" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="467;467" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+  </svg>
+</div>
+
+<div class="tip">
+  <div class="tip-title">Key Insight — Service is NOT a Process!</div>
+  A Service doesn't run anywhere. It's a set of <strong>iptables/IPVS rules</strong> on every node, maintained by kube-proxy. When traffic hits the ClusterIP, the kernel's netfilter does a DNAT (Destination NAT) to a random healthy Pod IP. That's why Services are so fast — it's kernel-level networking, not a proxy.
+</div>
+
+<h3>11.2 The Label → Selector Connection (The Glue!)</h3>
+<p>This is the #1 thing people miss. The Service finds Pods through <span class="highlight">label matching</span>, not by name or deployment reference.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Animated: How Service Discovers Pods via Labels</div>
+  <svg viewBox="0 0 850 350" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:850px;">
+
+    <!-- Deployment -->
+    <rect x="10" y="10" width="380" height="160" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="2"/>
+    <text x="30" y="38" fill="#a78bfa" font-size="13" font-weight="bold">Deployment: api-deploy</text>
+    <text x="30" y="58" fill="#94a3b8" font-size="11">spec.template.metadata:</text>
+    <rect x="40" y="66" width="200" height="30" rx="6" fill="#1a3a2a" stroke="#34d399" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="55" y="86" fill="#34d399" font-size="12" font-weight="bold">labels: app=api ★</text>
+    <text x="30" y="118" fill="#94a3b8" font-size="11">spec.containers[0].ports:</text>
+    <rect x="40" y="126" width="200" height="30" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="55" y="146" fill="#e2e8f0" font-size="11">containerPort: <tspan fill="#38bdf8">8080</tspan></text>
+
+    <!-- Arrow from deployment to pods -->
+    <text x="400" y="60" fill="#94a3b8" font-size="11">creates pods</text>
+    <text x="400" y="75" fill="#94a3b8" font-size="11">with these labels</text>
+    <line x1="390" y1="80" x2="470" y2="50" stroke="#a78bfa" stroke-width="1.5" class="animated-dash"/>
+    <line x1="390" y1="80" x2="470" y2="110" stroke="#a78bfa" stroke-width="1.5" class="animated-dash"/>
+
+    <!-- Pods with labels -->
+    <g style="animation: float 3s ease-in-out infinite">
+      <rect x="470" y="15" width="180" height="65" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+      <text x="490" y="38" fill="#34d399" font-size="11" font-weight="bold">Pod abc12</text>
+      <rect x="485" y="45" width="110" height="22" rx="4" fill="#1a3a2a" stroke="#34d399"><animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/></rect>
+      <text x="493" y="61" fill="#34d399" font-size="10">app=api ★</text>
+      <text x="600" y="52" fill="#94a3b8" font-size="10">:8080</text>
+    </g>
+    <g style="animation: float 3s ease-in-out infinite; animation-delay: 0.5s">
+      <rect x="470" y="90" width="180" height="65" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+      <text x="490" y="113" fill="#34d399" font-size="11" font-weight="bold">Pod def34</text>
+      <rect x="485" y="120" width="110" height="22" rx="4" fill="#1a3a2a" stroke="#34d399"><animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/></rect>
+      <text x="493" y="136" fill="#34d399" font-size="10">app=api ★</text>
+      <text x="600" y="127" fill="#94a3b8" font-size="10">:8080</text>
+    </g>
+
+    <!-- Unmatched pod -->
+    <g style="animation: float 4s ease-in-out infinite">
+      <rect x="680" y="50" width="160" height="65" rx="8" fill="#1e293b" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4"/>
+      <text x="700" y="73" fill="#ef4444" font-size="11">Pod xyz (other)</text>
+      <rect x="695" y="80" width="110" height="22" rx="4" fill="#3a1a1a" stroke="#ef4444"/>
+      <text x="703" y="96" fill="#ef4444" font-size="10">app=web ✗</text>
+    </g>
+    <text x="700" y="130" fill="#ef4444" font-size="10">Not selected!</text>
+
+    <!-- Service -->
+    <rect x="10" y="190" width="380" height="140" rx="10" fill="#1e293b" stroke="#fb923c" stroke-width="2" style="animation:glowOrange 3s infinite"/>
+    <text x="30" y="218" fill="#fb923c" font-size="13" font-weight="bold">Service: api-svc</text>
+    <text x="30" y="240" fill="#94a3b8" font-size="11">spec.selector:</text>
+    <rect x="40" y="248" width="200" height="35" rx="6" fill="#3a2a1a" stroke="#fb923c" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="55" y="271" fill="#fb923c" font-size="12" font-weight="bold">selector: app=api ★</text>
+    <text x="30" y="310" fill="#94a3b8" font-size="11">port: 80 → targetPort: <tspan fill="#38bdf8">8080</tspan></text>
+
+    <!-- MATCHING LINES — animated scan -->
+    <line x1="240" y1="260" x2="490" y2="55" stroke="#34d399" stroke-width="2.5" class="animated-dash" stroke-opacity="0.8"/>
+    <line x1="240" y1="260" x2="490" y2="130" stroke="#34d399" stroke-width="2.5" class="animated-dash" stroke-opacity="0.8"/>
+    <line x1="240" y1="260" x2="700" y2="80" stroke="#ef4444" stroke-width="1" stroke-dasharray="3" stroke-opacity="0.4"/>
+
+    <!-- Match indicators -->
+    <text x="340" y="170" fill="#34d399" font-size="14" font-weight="bold">MATCH ✓</text>
+    <circle cx="380" cy="165" r="10" fill="none" stroke="#34d399" stroke-width="2">
+      <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.2;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Endpoints result -->
+    <rect x="470" y="210" width="370" height="110" rx="10" fill="#0d1117" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="490" y="235" fill="#fb923c" font-size="12" font-weight="bold">Endpoints: api-svc</text>
+    <text x="490" y="258" fill="#94a3b8" font-size="11">kubectl get endpoints api-svc</text>
+    <text x="490" y="280" fill="#e2e8f0" font-size="12">→ 10.244.1.5:8080, 10.244.2.8:8080</text>
+    <text x="490" y="300" fill="#94a3b8" font-size="10">Auto-updated when pods are added/removed</text>
+
+    <!-- Animated scanning beam -->
+    <rect x="240" y="248" width="8" height="35" rx="2" fill="#fb923c" opacity="0.6">
+      <animate attributeName="x" values="40;230" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.8;0" dur="2s" repeatCount="indefinite"/>
+    </rect>
+  </svg>
+</div>
+
+<div class="warn-box">
+  <div class="warn-title">Common Mistake #1 — Labels Don't Match!</div>
+  If your Service <code>selector</code> says <code>app: my-app</code> but your Deployment labels say <code>app: myapp</code> (no hyphen), the Service will find <strong>zero Endpoints</strong> and all requests get 503 errors. Always verify with: <code>kubectl get endpoints my-svc</code>
+</div>
+
+<h3>11.3 Pod-to-Pod Communication Paths</h3>
+<div class="diagram">
+  <div class="diagram-title">Three Ways Pods Talk to Each Other</div>
+  <svg viewBox="0 0 850 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:850px;">
+    <!-- Scenario 1: Same Pod -->
+    <rect x="10" y="10" width="260" height="170" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <text x="25" y="35" fill="#34d399" font-size="12" font-weight="bold">① Same Pod = localhost</text>
+    <rect x="25" y="50" width="100" height="45" rx="5" fill="#0d1117" stroke="#38bdf8"/>
+    <text x="35" y="70" fill="#38bdf8" font-size="11">App</text>
+    <text x="35" y="85" fill="#94a3b8" font-size="9">:8080</text>
+    <rect x="155" y="50" width="100" height="45" rx="5" fill="#0d1117" stroke="#a78bfa"/>
+    <text x="165" y="70" fill="#a78bfa" font-size="11">Sidecar</text>
+    <text x="165" y="85" fill="#94a3b8" font-size="9">:9090</text>
+
+    <!-- Animated bidirectional packets -->
+    <line x1="125" y1="72" x2="155" y2="72" stroke="#fb923c" stroke-width="2" class="animated-dash"/>
+    <circle r="4" fill="#fb923c"><animate attributeName="cx" values="127;153" dur="0.8s" repeatCount="indefinite"/><animate attributeName="cy" values="72;72" dur="0.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="0.8s" repeatCount="indefinite"/></circle>
+
+    <text x="25" y="118" fill="#fb923c" font-size="11" font-weight="bold">curl localhost:9090</text>
+    <text x="25" y="136" fill="#94a3b8" font-size="10">Shared network namespace.</text>
+    <text x="25" y="150" fill="#94a3b8" font-size="10">No Service needed!</text>
+    <text x="25" y="168" fill="#94a3b8" font-size="10">Use case: sidecars, log collectors</text>
+
+    <!-- Scenario 2: Same Namespace via Service -->
+    <rect x="290" y="10" width="260" height="170" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <text x="305" y="35" fill="#38bdf8" font-size="12" font-weight="bold">② Same Namespace via Service</text>
+    <rect x="305" y="50" width="80" height="40" rx="5" fill="#0d1117" stroke="#34d399"/>
+    <text x="315" y="75" fill="#34d399" font-size="10">Frontend</text>
+    <rect x="305" y="100" width="100" height="30" rx="4" fill="#0d1117" stroke="#fb923c"><animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/></rect>
+    <text x="312" y="120" fill="#fb923c" font-size="10">api-svc:80</text>
+    <rect x="455" y="50" width="80" height="40" rx="5" fill="#0d1117" stroke="#34d399"/>
+    <text x="465" y="75" fill="#34d399" font-size="10">API Pod</text>
+
+    <line x1="385" y1="70" x2="405" y2="115" stroke="#38bdf8" stroke-width="1.5" class="animated-dash"/>
+    <line x1="405" y1="115" x2="455" y2="70" stroke="#34d399" stroke-width="1.5" class="animated-dash"/>
+    <circle r="4" fill="#38bdf8"><animate attributeName="cx" values="345;405;495" dur="1.5s" repeatCount="indefinite"/><animate attributeName="cy" values="70;115;70" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/></circle>
+
+    <text x="305" y="155" fill="#38bdf8" font-size="11" font-weight="bold">http://api-svc:80/users</text>
+    <text x="305" y="170" fill="#94a3b8" font-size="10">CoreDNS resolves → ClusterIP</text>
+
+    <!-- Scenario 3: Cross Namespace -->
+    <rect x="570" y="10" width="270" height="170" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="2"/>
+    <text x="585" y="35" fill="#a78bfa" font-size="12" font-weight="bold">③ Cross Namespace</text>
+    <rect x="585" y="50" width="100" height="40" rx="5" fill="#0d1117" stroke="#34d399"/>
+    <text x="595" y="68" fill="#34d399" font-size="10">ns: <tspan fill="#38bdf8">frontend</tspan></text>
+    <text x="595" y="82" fill="#94a3b8" font-size="9">Web Pod</text>
+
+    <rect x="730" y="50" width="100" height="40" rx="5" fill="#0d1117" stroke="#34d399"/>
+    <text x="740" y="68" fill="#34d399" font-size="10">ns: <tspan fill="#a78bfa">backend</tspan></text>
+    <text x="740" y="82" fill="#94a3b8" font-size="9">DB Service</text>
+
+    <line x1="685" y1="70" x2="730" y2="70" stroke="#a78bfa" stroke-width="2" class="animated-dash" marker-end="url(#arrowBlue)"/>
+    <circle r="4" fill="#a78bfa"><animate attributeName="cx" values="685;730" dur="1s" repeatCount="indefinite"/><animate attributeName="cy" values="70;70" dur="1s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="1s" repeatCount="indefinite"/></circle>
+
+    <text x="585" y="118" fill="#a78bfa" font-size="10" font-weight="bold">db-svc.backend.svc.cluster.local</text>
+    <text x="585" y="136" fill="#94a3b8" font-size="10">OR shorthand:</text>
+    <text x="585" y="152" fill="#a78bfa" font-size="11" font-weight="bold">db-svc.backend</text>
+    <text x="585" y="170" fill="#94a3b8" font-size="10">Must include namespace name</text>
+
+    <!-- Comparison summary -->
+    <rect x="10" y="200" width="830" height="70" rx="10" fill="#0d1117" stroke="#475569"/>
+    <text x="30" y="225" fill="#38bdf8" font-size="13" font-weight="bold">Quick Reference — What URL to Use:</text>
+    <text x="30" y="248" fill="#e2e8f0" font-size="12">Same pod: <tspan fill="#fb923c">localhost:PORT</tspan>     Same ns: <tspan fill="#fb923c">SERVICE_NAME:PORT</tspan>     Cross ns: <tspan fill="#fb923c">SERVICE_NAME.NAMESPACE:PORT</tspan></text>
+    <text x="30" y="265" fill="#94a3b8" font-size="11">Pods NEVER talk directly by Pod IP (IPs change!). Always go through a Service name.</text>
+  </svg>
+</div>
+
+<h3>11.4 Interactive Networking Simulator</h3>
+<p>Click to simulate real networking scenarios — see how DNS resolves, traffic routes, and what happens when things break:</p>
+
+<div class="diagram" id="net-sim-container">
+  <div class="diagram-title">Networking Simulator</div>
+  <svg viewBox="0 0 800 300" id="netSimSvg" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+
+    <!-- Frontend namespace -->
+    <rect x="10" y="10" width="280" height="280" rx="10" fill="#162032" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="25" y="35" fill="#38bdf8" font-size="12" font-weight="bold">Namespace: frontend</text>
+
+    <rect id="ns-front-pod" x="30" y="50" width="120" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="45" y="72" fill="#34d399" font-size="11" font-weight="bold">web-pod</text>
+    <text x="45" y="90" fill="#94a3b8" font-size="10" id="ns-front-pod-text">10.244.1.5</text>
+
+    <rect id="ns-front-svc" x="30" y="130" width="240" height="50" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="50" y="155" fill="#fb923c" font-size="11" font-weight="bold">web-svc</text>
+    <text x="130" y="155" fill="#94a3b8" font-size="10">ClusterIP:80→3000</text>
+    <text x="50" y="172" fill="#94a3b8" font-size="9" id="ns-front-svc-status">Ready</text>
+
+    <rect id="ns-front-db-svc" x="30" y="210" width="240" height="50" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="4"/>
+    <text x="50" y="235" fill="#a78bfa" font-size="11">→ db-svc.<tspan fill="#fb923c">backend</tspan></text>
+    <text x="50" y="252" fill="#94a3b8" font-size="9">Cross-namespace call</text>
+
+    <!-- Backend namespace -->
+    <rect x="350" y="10" width="440" height="280" rx="10" fill="#162032" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="365" y="35" fill="#a78bfa" font-size="12" font-weight="bold">Namespace: backend</text>
+
+    <rect id="ns-back-svc" x="370" y="55" width="250" height="55" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="1.5" style="animation:glowOrange 4s infinite"/>
+    <text x="390" y="80" fill="#fb923c" font-size="12" font-weight="bold">db-svc</text>
+    <text x="475" y="80" fill="#94a3b8" font-size="10">ClusterIP:5432→5432</text>
+    <text x="390" y="100" fill="#94a3b8" font-size="10" id="ns-back-svc-status">selector: app=postgres</text>
+
+    <rect id="ns-back-pod1" x="370" y="130" width="160" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="390" y="152" fill="#34d399" font-size="11" font-weight="bold">db-pod-1</text>
+    <text x="390" y="170" fill="#94a3b8" font-size="10" id="ns-back-pod1-text">10.244.2.8:5432</text>
+    <circle id="ns-back-pod1-health" cx="510" cy="155" r="5" fill="#34d399"/>
+
+    <rect id="ns-back-pod2" x="560" y="130" width="160" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="580" y="152" fill="#34d399" font-size="11" font-weight="bold">db-pod-2</text>
+    <text x="580" y="170" fill="#94a3b8" font-size="10" id="ns-back-pod2-text">10.244.1.9:5432</text>
+    <circle id="ns-back-pod2-health" cx="700" cy="155" r="5" fill="#34d399"/>
+
+    <!-- DNS -->
+    <rect x="370" y="210" width="400" height="60" rx="8" fill="#0d1117" stroke="#475569"/>
+    <text x="390" y="232" fill="#38bdf8" font-size="11" font-weight="bold">CoreDNS Resolution</text>
+    <text x="390" y="252" fill="#94a3b8" font-size="10" id="ns-dns-text">db-svc.backend → 10.96.100.20 (ClusterIP)</text>
+    <text x="390" y="265" fill="#94a3b8" font-size="9" id="ns-dns-detail"></text>
+
+    <!-- Animated connection line -->
+    <line id="ns-connect-line" x1="270" y1="235" x2="370" y2="82" stroke="#a78bfa" stroke-width="2" class="animated-dash" opacity="0.5"/>
+
+    <!-- Packet that travels -->
+    <circle id="ns-packet" r="6" fill="#38bdf8" opacity="0"/>
+  </svg>
+
+  <div style="margin-top:15px;">
+    <button class="sim-btn" onclick="netSimQuery()">🔍 DNS Lookup</button>
+    <button class="sim-btn success" onclick="netSimSendTraffic()">📤 Send DB Query</button>
+    <button class="sim-btn danger" onclick="netSimBreakLabel()">🏷️ Wrong Label</button>
+    <button class="sim-btn" onclick="netSimNetworkPolicy()" style="background:#a78bfa;color:#000">🛡️ NetworkPolicy</button>
+    <button class="sim-btn" onclick="netSimReset()" style="background:#475569;color:#fff">🔄 Reset</button>
+  </div>
+  <div class="sim-status" id="net-sim-log">Click a button to simulate networking scenarios...</div>
+</div>
+
+<h3>11.5 Service Discovery — Two Methods</h3>
+<div class="vs-grid">
+  <div class="vs-box">
+    <h4 style="color:var(--accent)">Method 1: DNS (Recommended)</h4>
+    <pre><code><span class="cm"># In your app code or env var:</span>
+DB_HOST=<span class="str">db-svc.backend</span>
+
+<span class="cm"># Full FQDN:</span>
+DB_HOST=<span class="str">db-svc.backend.svc.cluster.local</span>
+
+<span class="cm"># Same namespace (shortest):</span>
+API_URL=<span class="str">http://api-svc:80/v1</span></code></pre>
+    <p style="color:var(--muted);font-size:.9em;margin-top:8px;">CoreDNS resolves service names to ClusterIPs. This is what you should use 99% of the time.</p>
+  </div>
+  <div class="vs-box">
+    <h4 style="color:var(--accent3)">Method 2: Environment Variables</h4>
+    <pre><code><span class="cm"># K8s auto-injects for every Service:</span>
+echo $API_SVC_SERVICE_HOST
+<span class="cm"># → 10.96.45.12</span>
+
+echo $API_SVC_SERVICE_PORT
+<span class="cm"># → 80</span>
+
+<span class="cm"># Naming: {SVC_NAME}_SERVICE_HOST</span>
+<span class="cm"># (uppercase, dashes become underscores)</span></code></pre>
+    <p style="color:var(--muted);font-size:.9em;margin-top:8px;">Only works for Services created BEFORE the Pod. DNS is more reliable.</p>
+  </div>
+</div>
+
+<h3>11.6 NetworkPolicy — The Firewall</h3>
+<p>By default, all pods can talk to all other pods. <span class="highlight">NetworkPolicy</span> adds firewall rules to restrict traffic.</p>
+
+<pre><code><span class="cm"># Only allow frontend namespace to reach backend db-svc</span>
+<span class="kw">apiVersion:</span> <span class="str">networking.k8s.io/v1</span>
+<span class="kw">kind:</span> <span class="str">NetworkPolicy</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">allow-frontend-to-db</span>
+  <span class="key">namespace:</span> <span class="str">backend</span>
+<span class="kw">spec:</span>
+  <span class="key">podSelector:</span>
+    <span class="key">matchLabels:</span>
+      <span class="key">app:</span> <span class="str">postgres</span>          <span class="cm"># ← apply to DB pods</span>
+  <span class="key">policyTypes:</span> [<span class="str">Ingress</span>]
+  <span class="key">ingress:</span>
+  - <span class="key">from:</span>
+    - <span class="key">namespaceSelector:</span>
+        <span class="key">matchLabels:</span>
+          <span class="key">name:</span> <span class="str">frontend</span>      <span class="cm"># ← only from frontend ns</span>
+    <span class="key">ports:</span>
+    - <span class="key">port:</span> <span class="val">5432</span></code></pre>
+
+<div class="tip">
+  <div class="tip-title">Debugging Networking — The Commands You Need</div>
+  <code>kubectl get endpoints api-svc</code> — are pods registered? If empty, labels don't match!<br>
+  <code>kubectl describe svc api-svc</code> — check selector, ports, and endpoints<br>
+  <code>kubectl exec -it debug-pod -- nslookup api-svc</code> — does DNS resolve?<br>
+  <code>kubectl exec -it debug-pod -- curl api-svc:80/health</code> — can you actually reach it?<br>
+  <code>kubectl get networkpolicy -A</code> — any policies blocking traffic?
+</div>
+</section>
+
+<!-- ===================== INGRESS ===================== -->
+<section id="ingress" class="fade-in">
+<h2>12. Ingress — The Smart Front Door</h2>
+<p>Ingress sits at the edge of your cluster and routes external HTTP/HTTPS traffic to the right Service based on URL path or hostname.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Animated Ingress Routing — Watch Traffic Split by URL Path</div>
+  <svg viewBox="0 0 800 250" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <!-- User -->
+    <rect x="10" y="85" width="100" height="50" rx="8" fill="#2d2b55" stroke="#a78bfa" stroke-width="2"/>
+    <text x="25" y="115" fill="#a78bfa" font-size="12">🌐 Internet</text>
+
+    <line x1="110" y1="110" x2="180" y2="110" stroke="#a78bfa" stroke-width="2" class="animated-dash"/>
+
+    <!-- Ingress Controller -->
+    <rect x="180" y="15" width="240" height="220" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="2" style="animation:glowPulse 4s infinite"/>
+    <text x="200" y="42" fill="#a78bfa" font-size="13" font-weight="bold">Ingress Controller</text>
+    <text x="200" y="60" fill="#94a3b8" font-size="10">(nginx / traefik / HAProxy)</text>
+
+    <text x="200" y="90" fill="#e2e8f0" font-size="12">/api/*    →</text>
+    <text x="200" y="120" fill="#e2e8f0" font-size="12">/app/*    →</text>
+    <text x="200" y="150" fill="#e2e8f0" font-size="12">/static/* →</text>
+
+    <rect x="200" y="175" width="200" height="40" rx="6" fill="#0d1117" stroke="#475569"/>
+    <text x="215" y="193" fill="#94a3b8" font-size="10">TLS termination: *.example.com</text>
+    <text x="215" y="207" fill="#94a3b8" font-size="10">Cert from Secret: tls-secret</text>
+
+    <!-- Animated routing lines -->
+    <line x1="420" y1="85" x2="520" y2="50" stroke="#fb923c" stroke-width="2" class="animated-dash" marker-end="url(#arrowOrange)"/>
+    <line x1="420" y1="115" x2="520" y2="115" stroke="#34d399" stroke-width="2" class="animated-dash" marker-end="url(#arrowGreen)"/>
+    <line x1="420" y1="145" x2="520" y2="180" stroke="#38bdf8" stroke-width="2" class="animated-dash" marker-end="url(#arrowBlue)"/>
+
+    <!-- Animated routing packets -->
+    <circle r="5" fill="#fb923c"><animate attributeName="cx" values="420;520" dur="1s" repeatCount="indefinite"/><animate attributeName="cy" values="85;50" dur="1s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="1s" repeatCount="indefinite"/></circle>
+    <circle r="5" fill="#34d399"><animate attributeName="cx" values="420;520" dur="1.2s" repeatCount="indefinite" begin="0.3s"/><animate attributeName="cy" values="115;115" dur="1.2s" repeatCount="indefinite" begin="0.3s"/><animate attributeName="opacity" values="0;1;0" dur="1.2s" repeatCount="indefinite" begin="0.3s"/></circle>
+    <circle r="5" fill="#38bdf8"><animate attributeName="cx" values="420;520" dur="1.1s" repeatCount="indefinite" begin="0.6s"/><animate attributeName="cy" values="145;180" dur="1.1s" repeatCount="indefinite" begin="0.6s"/><animate attributeName="opacity" values="0;1;0" dur="1.1s" repeatCount="indefinite" begin="0.6s"/></circle>
+
+    <!-- Services -->
+    <rect x="520" y="30" width="160" height="45" rx="6" fill="#1e293b" stroke="#fb923c"/>
+    <text x="540" y="50" fill="#fb923c" font-size="11" font-weight="bold">api-svc:8080</text>
+    <text x="540" y="67" fill="#94a3b8" font-size="9">→ API pods</text>
+
+    <rect x="520" y="95" width="160" height="45" rx="6" fill="#1e293b" stroke="#34d399"/>
+    <text x="540" y="115" fill="#34d399" font-size="11" font-weight="bold">app-svc:3000</text>
+    <text x="540" y="132" fill="#94a3b8" font-size="9">→ Frontend pods</text>
+
+    <rect x="520" y="160" width="160" height="45" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+    <text x="540" y="180" fill="#38bdf8" font-size="11" font-weight="bold">static-svc:80</text>
+    <text x="540" y="197" fill="#94a3b8" font-size="9">→ Static file pods</text>
+
+    <!-- Arrows to pods -->
+    <line x1="680" y1="52" x2="720" y2="52" stroke="#fb923c" stroke-width="1" class="animated-dash" marker-end="url(#arrowOrange)"/>
+    <line x1="680" y1="117" x2="720" y2="117" stroke="#34d399" stroke-width="1" class="animated-dash" marker-end="url(#arrowGreen)"/>
+    <line x1="680" y1="182" x2="720" y2="182" stroke="#38bdf8" stroke-width="1" class="animated-dash" marker-end="url(#arrowBlue)"/>
+
+    <text x="725" y="56" fill="#94a3b8" font-size="10">Pods</text>
+    <text x="725" y="121" fill="#94a3b8" font-size="10">Pods</text>
+    <text x="725" y="186" fill="#94a3b8" font-size="10">Pods</text>
+  </svg>
+</div>
+
+<pre><code><span class="kw">apiVersion:</span> <span class="str">networking.k8s.io/v1</span>
+<span class="kw">kind:</span> <span class="str">Ingress</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-ingress</span>
+  <span class="key">annotations:</span>
+    <span class="key">nginx.ingress.kubernetes.io/rewrite-target:</span> <span class="str">/</span>
+<span class="kw">spec:</span>
+  <span class="key">tls:</span>
+  - <span class="key">hosts:</span> [<span class="str">app.example.com</span>]
+    <span class="key">secretName:</span> <span class="str">tls-secret</span>          <span class="cm"># ← TLS cert stored as a Secret</span>
+  <span class="key">rules:</span>
+  - <span class="key">host:</span> <span class="str">app.example.com</span>
+    <span class="key">http:</span>
+      <span class="key">paths:</span>
+      - <span class="key">path:</span> <span class="str">/api</span>
+        <span class="key">pathType:</span> <span class="str">Prefix</span>
+        <span class="key">backend:</span>
+          <span class="key">service:</span>
+            <span class="key">name:</span> <span class="str">api-svc</span>            <span class="cm"># ← which Service to route to</span>
+            <span class="key">port:</span>
+              <span class="key">number:</span> <span class="val">80</span>              <span class="cm"># ← the Service's port (not targetPort)</span></code></pre>
+</section>
+
+<!-- ===================== DNS ===================== -->
+<section id="dns" class="fade-in">
+<h2>13. DNS in Kubernetes — CoreDNS</h2>
+<p>Every Service gets a DNS entry automatically via <span class="highlight">CoreDNS</span>. This is how pods find each other — by name, not IP.</p>
+<div class="diagram">
+  <div class="diagram-title">DNS Resolution Hierarchy</div>
+  <svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <!-- DNS levels -->
+    <rect x="10" y="10" width="780" height="40" rx="6" fill="#1a3a2a" stroke="#34d399" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="25" y="35" fill="#34d399" font-size="13" font-weight="bold">my-service</text>
+    <text x="530" y="35" fill="#94a3b8" font-size="12">← same namespace (USE THIS)</text>
+
+    <rect x="10" y="60" width="780" height="40" rx="6" fill="#162032" stroke="#38bdf8" stroke-width="1"/>
+    <text x="25" y="85" fill="#38bdf8" font-size="13"><tspan fill="#34d399">my-service</tspan>.<tspan fill="#fb923c">other-namespace</tspan></text>
+    <text x="530" y="85" fill="#94a3b8" font-size="12">← cross-namespace</text>
+
+    <rect x="10" y="110" width="780" height="40" rx="6" fill="#0d1117" stroke="#475569"/>
+    <text x="25" y="135" fill="#e2e8f0" font-size="13"><tspan fill="#34d399">my-service</tspan>.<tspan fill="#fb923c">other-namespace</tspan>.<tspan fill="#a78bfa">svc</tspan>.<tspan fill="#f472b6">cluster.local</tspan></text>
+    <text x="530" y="135" fill="#94a3b8" font-size="12">← fully qualified (FQDN)</text>
+
+    <!-- How it works -->
+    <rect x="10" y="165" width="780" height="30" rx="6" fill="#0d1117"/>
+    <text x="25" y="185" fill="#94a3b8" font-size="11">Pod's /etc/resolv.conf → nameserver 10.96.0.10 (CoreDNS) → searches: default.svc.cluster.local, svc.cluster.local</text>
+  </svg>
+</div>
+
+<pre><code><span class="cm"># Test DNS resolution from inside a pod:</span>
+kubectl exec -it my-pod -- nslookup api-svc
+kubectl exec -it my-pod -- nslookup db-svc.backend
+kubectl exec -it my-pod -- cat /etc/resolv.conf   <span class="cm"># see search domains</span></code></pre>
+</section>
+
+<!-- ===================== HELM ===================== -->
+<section id="helm" class="fade-in">
+<h2>14. Helm — Package Manager</h2>
+<div class="flow">
+  <div class="flow-step" style="border-color:var(--accent)">Chart</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent2)">helm install</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent3)">Release</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent4)">helm upgrade</div>
+</div>
+<pre><code>helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install my-nginx bitnami/nginx -f values.yaml
+helm upgrade my-nginx bitnami/nginx -f values.yaml
+helm rollback my-nginx 1
+helm list</code></pre>
+</section>
+
+<!-- ===================== CI/CD ===================== -->
+<section id="ci-cd" class="fade-in">
+<h2>15. CI/CD Pipeline — Animated</h2>
+
+<div class="diagram">
+  <div class="diagram-title">Watch the deployment flow</div>
+  <svg viewBox="0 0 850 110" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:850px;">
+    <rect x="5" y="25" width="95" height="55" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="15" y="50" fill="#a78bfa" font-size="11" font-weight="bold">Git Push</text>
+    <text x="15" y="67" fill="#94a3b8" font-size="9">GitHub</text>
+
+    <line x1="100" y1="52" x2="140" y2="52" stroke="#38bdf8" stroke-width="2" class="animated-dash" marker-end="url(#arrowBlue)"/>
+
+    <rect x="140" y="25" width="110" height="55" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="150" y="50" fill="#38bdf8" font-size="11" font-weight="bold">Build & Test</text>
+    <text x="150" y="67" fill="#94a3b8" font-size="9">CI Runner</text>
+
+    <line x1="250" y1="52" x2="290" y2="52" stroke="#38bdf8" stroke-width="2" class="animated-dash" marker-end="url(#arrowBlue)"/>
+
+    <rect x="290" y="25" width="110" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="300" y="50" fill="#34d399" font-size="11" font-weight="bold">Docker Build</text>
+    <text x="300" y="67" fill="#94a3b8" font-size="9">Push Image</text>
+
+    <line x1="400" y1="52" x2="440" y2="52" stroke="#34d399" stroke-width="2" class="animated-dash" marker-end="url(#arrowGreen)"/>
+
+    <rect x="440" y="25" width="110" height="55" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="450" y="50" fill="#fb923c" font-size="11" font-weight="bold">Update YAML</text>
+    <text x="450" y="67" fill="#94a3b8" font-size="9">New tag</text>
+
+    <line x1="550" y1="52" x2="590" y2="52" stroke="#fb923c" stroke-width="2" class="animated-dash" marker-end="url(#arrowOrange)"/>
+
+    <rect x="590" y="25" width="110" height="55" rx="8" fill="#1e293b" stroke="#f472b6" stroke-width="1.5"/>
+    <text x="600" y="50" fill="#f472b6" font-size="11" font-weight="bold">ArgoCD Sync</text>
+    <text x="600" y="67" fill="#94a3b8" font-size="9">GitOps</text>
+
+    <line x1="700" y1="52" x2="740" y2="52" stroke="#f472b6" stroke-width="2" class="animated-dash" marker-end="url(#arrowPink)"/>
+
+    <rect x="740" y="25" width="95" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="2" style="animation:glowGreen 2s infinite"/>
+    <text x="755" y="50" fill="#34d399" font-size="12" font-weight="bold">☸ Live!</text>
+    <text x="755" y="67" fill="#94a3b8" font-size="9">Cluster</text>
+
+    <!-- Animated deployment packet traveling the pipeline -->
+    <circle r="6" fill="#38bdf8">
+      <animate attributeName="cx" values="50;195;345;495;645;787" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="52;52;52;52;52;52" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="fill" values="#a78bfa;#38bdf8;#34d399;#fb923c;#f472b6;#34d399" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;1;1;0" dur="6s" repeatCount="indefinite"/>
+    </circle>
+  </svg>
+</div>
+</section>
+
+<!-- ===================== GITOPS ===================== -->
+<section id="gitops" class="fade-in">
+<h2>16. GitOps & ArgoCD</h2>
+<p><span class="highlight">Git = single source of truth.</span> Push YAML → ArgoCD auto-syncs to cluster.</p>
+<div class="card-grid">
+  <div class="card"><div class="icon">🔄</div><h4>ArgoCD</h4><p>Most popular GitOps tool. Beautiful UI, auto-sync from Git.</p></div>
+  <div class="card"><div class="icon">🔀</div><h4>Flux</h4><p>CNCF toolkit. CLI-focused, lightweight.</p></div>
+  <div class="card"><div class="icon">🏗️</div><h4>Kustomize</h4><p>Built into kubectl. Customize YAML per environment.</p></div>
+</div>
+</section>
+
+<!-- ===================== MONITORING ===================== -->
+<section id="monitoring" class="fade-in">
+<h2>17. Monitoring</h2>
+<div class="card-grid">
+  <div class="card"><div class="icon">📊</div><h4>Prometheus + Grafana</h4><p>Industry standard metrics & dashboards.</p></div>
+  <div class="card"><div class="icon">📝</div><h4>Loki / EFK</h4><p>Log aggregation and search.</p></div>
+  <div class="card"><div class="icon">🔍</div><h4>Lens IDE</h4><p>Visual K8s dashboard — great for beginners.</p></div>
+  <div class="card"><div class="icon">🩺</div><h4>Health Probes</h4><p>Liveness + Readiness probes for auto-healing.</p></div>
+</div>
+
+<pre><code><span class="cm"># Health probes — add to every Deployment!</span>
+<span class="key">livenessProbe:</span>       <span class="cm"># Restart if this fails</span>
+  <span class="key">httpGet:</span>
+    <span class="key">path:</span> <span class="str">/healthz</span>
+    <span class="key">port:</span> <span class="val">8080</span>
+  <span class="key">periodSeconds:</span> <span class="val">10</span>
+<span class="key">readinessProbe:</span>      <span class="cm"># Remove from LB if this fails</span>
+  <span class="key">httpGet:</span>
+    <span class="key">path:</span> <span class="str">/ready</span>
+    <span class="key">port:</span> <span class="val">8080</span></code></pre>
+</section>
+
+<!-- ===================== COMMON PAIN POINTS ===================== -->
+<section id="pain-points" class="fade-in">
+<h2>18. Common Kubernetes Pain Points & Troubleshooting</h2>
+<p>Every K8s engineer hits these walls. Here's every common pain point organized by category, with the <span class="highlight">exact kubectl commands</span> to diagnose and fix each one. Click any category to expand.</p>
+
+<!-- INTERACTIVE ACCORDION -->
+<div id="painAccordion">
+
+<!-- ===== CATEGORY 1: DEPLOYMENT & UPDATES ===== -->
+<div class="pain-category" onclick="togglePain('pain-deploy')">
+  <div class="pain-header">
+    <span class="pain-icon">🚀</span>
+    <span class="pain-title">Deployment & Update Issues</span>
+    <span class="pain-count">7 pain points</span>
+    <span class="pain-arrow" id="arrow-pain-deploy">▼</span>
+  </div>
+</div>
+<div class="pain-body" id="pain-deploy">
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">VERY COMMON</span>
+      <span class="pain-name">kubectl apply doesn't update pods</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Image tag (e.g. <code>:latest</code>) didn't change → K8s sees identical YAML → no rollout triggered. Node uses cached image.</div>
+      <div class="pain-fix"><strong>Fix:</strong></div>
+      <pre><code><span class="cm"># Quick fix — force restart (zero downtime):</span>
+kubectl rollout restart deployment/my-app
+
+<span class="cm"># Best fix — use unique image tags:</span>
+image: my-app:<span class="val">v1.0.2</span>   <span class="cm"># or git commit SHA</span>
+
+<span class="cm"># Check current image:</span>
+kubectl get deploy my-app -o jsonpath='{.spec.template.spec.containers[0].image}'</code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">VERY COMMON</span>
+      <span class="pain-name">CrashLoopBackOff</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Container starts, crashes, K8s restarts it, crashes again → exponential backoff (10s, 20s, 40s...). Usually: app error, missing env var, wrong command, or config file not found.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl logs my-pod                     <span class="cm"># see crash output</span>
+kubectl logs my-pod <span class="val">--previous</span>           <span class="cm"># logs from LAST crashed container</span>
+kubectl describe pod my-pod              <span class="cm"># check Events section at bottom</span>
+kubectl get events --sort-by=.lastTimestamp   <span class="cm"># cluster-wide events</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">VERY COMMON</span>
+      <span class="pain-name">ImagePullBackOff / ErrImagePull</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> K8s can't pull the image. Wrong image name/tag, private registry without credentials, or network issue.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl describe pod my-pod | grep -A5 Events
+<span class="cm"># Look for: "Failed to pull image" with the exact error</span>
+
+<span class="cm"># Fix: Wrong image name → correct it in deployment.yaml</span>
+<span class="cm"># Fix: Private registry → create imagePullSecret:</span>
+kubectl create secret docker-registry regcred \
+  --docker-server=registry.example.com \
+  --docker-username=user --docker-password=pass
+
+<span class="cm"># Then add to deployment:</span>
+<span class="key">spec:</span>
+  <span class="key">imagePullSecrets:</span>
+  - <span class="key">name:</span> <span class="str">regcred</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">ConfigMap/Secret changes not applied to pods</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Updating a ConfigMap/Secret does NOT restart pods. Existing pods keep the old values.</div>
+      <div class="pain-fix"><strong>Fix:</strong></div>
+      <pre><code>kubectl rollout restart deployment/my-app    <span class="cm"># restart pods to pick up changes</span>
+
+<span class="cm"># Pro tip: use a hash annotation in Helm to auto-trigger:</span>
+<span class="key">annotations:</span>
+  <span class="key">checksum/config:</span> <span class="str">{{ include "mychart/configmap.yaml" . | sha256sum }}</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Rolling update stuck — new pods not becoming Ready</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> New pods fail readinessProbe → K8s won't kill old pods → update hangs. Could be wrong health endpoint, port mismatch, or app takes too long to start.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl rollout status deployment/my-app     <span class="cm"># see rollout progress</span>
+kubectl get pods                              <span class="cm"># new pods stuck at 0/1 Running</span>
+kubectl describe pod my-app-NEW-POD           <span class="cm"># check readiness probe failures</span>
+kubectl rollout undo deployment/my-app        <span class="cm"># ROLLBACK if broken!</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Pod stuck in Pending state</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> No node has enough CPU/memory, or node selector/affinity/taint doesn't match any node.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl describe pod my-pod | grep -A10 Events
+<span class="cm"># Look for: "Insufficient cpu" or "Insufficient memory" or "no nodes match"</span>
+
+kubectl top nodes                            <span class="cm"># check node resource usage</span>
+kubectl describe node NODE_NAME              <span class="cm"># see allocatable vs allocated</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#a78bfa">
+      <span class="pain-severity low">OCCASIONAL</span>
+      <span class="pain-name">CreateContainerConfigError</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Pod references a ConfigMap, Secret, or ServiceAccount that doesn't exist.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl describe pod my-pod
+<span class="cm"># Look for: "configmap 'xxx' not found" or "secret 'xxx' not found"</span>
+kubectl get configmap,secret -n my-namespace  <span class="cm"># check if they exist</span></code></pre>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CATEGORY 2: NETWORKING ===== -->
+<div class="pain-category" onclick="togglePain('pain-network')">
+  <div class="pain-header">
+    <span class="pain-icon">🌐</span>
+    <span class="pain-title">Networking & Service Issues</span>
+    <span class="pain-count">6 pain points</span>
+    <span class="pain-arrow" id="arrow-pain-network">▼</span>
+  </div>
+</div>
+<div class="pain-body" id="pain-network">
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">VERY COMMON</span>
+      <span class="pain-name">Service returns "connection refused" — 0 Endpoints</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Service <code>selector</code> labels don't match Pod labels. Service finds no pods → empty Endpoints → all traffic fails.</div>
+      <div class="pain-fix"><strong>Diagnose & Fix:</strong></div>
+      <pre><code>kubectl get endpoints my-svc               <span class="cm"># EMPTY = labels don't match!</span>
+kubectl describe svc my-svc                 <span class="cm"># check Selector field</span>
+kubectl get pods --show-labels              <span class="cm"># compare with selector</span>
+
+<span class="cm"># The selector in Service MUST match labels in Deployment template:</span>
+<span class="cm"># Service:    selector: app=my-app</span>
+<span class="cm"># Deployment: labels:   app=my-app  ← must be IDENTICAL</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">VERY COMMON</span>
+      <span class="pain-name">Port confusion — targetPort vs port vs containerPort</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> <code>targetPort</code> in Service must equal the port your app actually listens on (<code>containerPort</code>). If these don't match → connection refused.</div>
+      <div class="pain-fix"><strong>Check:</strong></div>
+      <pre><code><span class="cm"># What port does your app listen on?</span>
+kubectl exec my-pod -- netstat -tlnp        <span class="cm"># or ss -tlnp</span>
+<span class="cm"># If app listens on 8080, then Service targetPort MUST be 8080</span>
+
+<span class="cm"># Quick test — port-forward directly to pod:</span>
+kubectl port-forward pod/my-pod 8080:8080   <span class="cm"># bypass Service to test</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">DNS not resolving cross-namespace service</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> From namespace A, you can't just call <code>svc-name</code> in namespace B. You must include the namespace: <code>svc-name.namespace-b</code></div>
+      <div class="pain-fix"><strong>Fix:</strong></div>
+      <pre><code><span class="cm"># Wrong (from frontend ns trying to reach backend ns):</span>
+curl http://db-svc:5432           <span class="cm"># ✗ looks in current ns only!</span>
+
+<span class="cm"># Correct:</span>
+curl http://db-svc.<span class="val">backend</span>:5432   <span class="cm"># ✓ includes namespace</span>
+
+<span class="cm"># Debug DNS:</span>
+kubectl exec -it my-pod -- nslookup db-svc.backend
+kubectl exec -it my-pod -- cat /etc/resolv.conf</code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Ingress not routing / 404 errors</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Ingress controller not installed, wrong annotations for your controller type, or backend service name/port mismatch.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl get ingress                          <span class="cm"># check ADDRESS column</span>
+kubectl describe ingress my-ingress          <span class="cm"># check rules and backend</span>
+kubectl get pods -n ingress-nginx            <span class="cm"># is controller running?</span>
+kubectl logs -n ingress-nginx CONTROLLER_POD <span class="cm"># check for errors</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Pods can't reach external internet</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> NetworkPolicy blocking egress, DNS issues (CoreDNS not working), or cloud NAT gateway not configured.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl exec -it my-pod -- nslookup google.com    <span class="cm"># DNS works?</span>
+kubectl exec -it my-pod -- curl -v https://api.example.com
+kubectl get networkpolicy -A                       <span class="cm"># any egress policies?</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#a78bfa">
+      <span class="pain-severity low">OCCASIONAL</span>
+      <span class="pain-name">Service works on some nodes but not others</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> kube-proxy not running on all nodes, or iptables rules out of sync. Can also be CNI plugin issues.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl get pods -n kube-system -l k8s-app=kube-proxy  <span class="cm"># running on all nodes?</span>
+kubectl logs -n kube-system kube-proxy-XXXXX</code></pre>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CATEGORY 3: STORAGE ===== -->
+<div class="pain-category" onclick="togglePain('pain-storage')">
+  <div class="pain-header">
+    <span class="pain-icon">💾</span>
+    <span class="pain-title">Storage & Volume Issues</span>
+    <span class="pain-count">5 pain points</span>
+    <span class="pain-arrow" id="arrow-pain-storage">▼</span>
+  </div>
+</div>
+<div class="pain-body" id="pain-storage">
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">VERY COMMON</span>
+      <span class="pain-name">PVC stuck in Pending</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> No PV matches the PVC (wrong StorageClass, capacity too large, or access mode mismatch). Or the StorageClass provisioner is not installed.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl describe pvc my-pvc                  <span class="cm"># check Events for reason</span>
+kubectl get pv                                <span class="cm"># any Available PVs?</span>
+kubectl get storageclass                      <span class="cm"># is the StorageClass available?</span>
+
+<span class="cm"># Common fix — check StorageClass name matches:</span>
+<span class="cm"># PVC: storageClassName: "gp2"</span>
+<span class="cm"># SC:  name: "gp2"              ← must match!</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Data lost when pod moves to different node</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Using <code>hostPath</code> volume — data only exists on one node. If pod is rescheduled to another node, data is gone.</div>
+      <div class="pain-fix"><strong>Fix:</strong> Use PVC with a network-attached storage (AWS EBS, GCP PD, NFS, Ceph). Never use hostPath in production for important data.</div>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Volume mount hides existing container files</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Mounting a volume to <code>/app</code> replaces everything in <code>/app</code> from the image. Your app binary disappears!</div>
+      <div class="pain-fix"><strong>Fix:</strong> Mount to a subdirectory like <code>/app/data</code> instead. Or use <code>subPath</code> to mount a single file without hiding others.</div>
+      <pre><code><span class="key">volumeMounts:</span>
+- <span class="key">name:</span> <span class="str">config</span>
+  <span class="key">mountPath:</span> <span class="str">/app/config/settings.yaml</span>
+  <span class="key">subPath:</span> <span class="str">settings.yaml</span>       <span class="cm"># ← only mounts this one file!</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">ReadWriteOnce blocks pod scheduling</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> RWO volume can only be mounted by pods on ONE node. If you scale replicas, pods on other nodes can't attach the same volume.</div>
+      <div class="pain-fix"><strong>Fix:</strong> Use <code>ReadWriteMany</code> (NFS, EFS) for shared access, or use StatefulSet with per-pod PVCs, or design your app to not need shared storage.</div>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">DANGEROUS</span>
+      <span class="pain-name">PV data deleted when PVC is removed</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Default <code>reclaimPolicy: Delete</code> destroys the PV (and data!) when PVC is deleted.</div>
+      <div class="pain-fix"><strong>Fix:</strong></div>
+      <pre><code><span class="cm"># Set reclaimPolicy to Retain for important data:</span>
+kubectl patch pv my-pv -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'
+
+<span class="cm"># Or set it in StorageClass:</span>
+<span class="key">reclaimPolicy:</span> <span class="str">Retain</span></code></pre>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CATEGORY 4: RESOURCES ===== -->
+<div class="pain-category" onclick="togglePain('pain-resources')">
+  <div class="pain-header">
+    <span class="pain-icon">📊</span>
+    <span class="pain-title">Resource & Performance Issues</span>
+    <span class="pain-count">4 pain points</span>
+    <span class="pain-arrow" id="arrow-pain-resources">▼</span>
+  </div>
+</div>
+<div class="pain-body" id="pain-resources">
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">VERY COMMON</span>
+      <span class="pain-name">OOMKilled — Out of Memory</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Container exceeded its memory <code>limit</code>. K8s kills it immediately. Often: Java apps with high heap, memory leaks, or limit set too low.</div>
+      <div class="pain-fix"><strong>Diagnose & Fix:</strong></div>
+      <pre><code>kubectl describe pod my-pod | grep -i oom
+kubectl top pod my-pod                        <span class="cm"># current memory usage</span>
+
+<span class="cm"># Increase memory limit:</span>
+<span class="key">resources:</span>
+  <span class="key">limits:</span>
+    <span class="key">memory:</span> <span class="str">"512Mi"</span>   <span class="cm"># was "256Mi" — increase it</span>
+  <span class="key">requests:</span>
+    <span class="key">memory:</span> <span class="str">"256Mi"</span>   <span class="cm"># guaranteed minimum</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">App is slow — CPU throttling</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> CPU <code>limit</code> is too low. K8s throttles the container when it tries to use more. Unlike memory, it doesn't kill — it just slows down.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl top pod my-pod                        <span class="cm"># current CPU usage</span>
+<span class="cm"># If CPU is near the limit → throttled → increase limit</span>
+<span class="cm"># Pro tip: Some teams remove CPU limits entirely and only set requests</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">No resource limits → noisy neighbor problem</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> One pod without limits consumes all CPU/memory on a node → other pods starve. Causes cascading failures.</div>
+      <div class="pain-fix"><strong>Fix:</strong> ALWAYS set requests and limits. Use <code>LimitRange</code> to enforce defaults per namespace.</div>
+      <pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">LimitRange</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">default-limits</span>
+<span class="kw">spec:</span>
+  <span class="key">limits:</span>
+  - <span class="key">default:</span>        <span class="cm"># default limits if not specified</span>
+      <span class="key">cpu:</span> <span class="str">"500m"</span>
+      <span class="key">memory:</span> <span class="str">"256Mi"</span>
+    <span class="key">defaultRequest:</span> <span class="cm"># default requests</span>
+      <span class="key">cpu:</span> <span class="str">"100m"</span>
+      <span class="key">memory:</span> <span class="str">"128Mi"</span>
+    <span class="key">type:</span> <span class="str">Container</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#a78bfa">
+      <span class="pain-severity low">OCCASIONAL</span>
+      <span class="pain-name">Evicted pods — node under pressure</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Node runs low on disk, memory, or PIDs. kubelet evicts pods starting with those that exceed requests. BestEffort pods (no requests) get evicted first.</div>
+      <div class="pain-fix"><strong>Diagnose:</strong></div>
+      <pre><code>kubectl describe node NODE | grep -A5 Conditions
+kubectl get pods --field-selector=status.phase=Failed  <span class="cm"># see evicted pods</span></code></pre>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CATEGORY 5: RBAC & SECURITY ===== -->
+<div class="pain-category" onclick="togglePain('pain-rbac')">
+  <div class="pain-header">
+    <span class="pain-icon">🔒</span>
+    <span class="pain-title">RBAC & Security Issues</span>
+    <span class="pain-count">4 pain points</span>
+    <span class="pain-arrow" id="arrow-pain-rbac">▼</span>
+  </div>
+</div>
+<div class="pain-body" id="pain-rbac">
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">VERY COMMON</span>
+      <span class="pain-name">Forbidden — RBAC permission denied</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Your user or ServiceAccount doesn't have the right Role/ClusterRole bound to it.</div>
+      <div class="pain-fix"><strong>Diagnose & Fix:</strong></div>
+      <pre><code><span class="cm"># Check what you CAN do:</span>
+kubectl auth can-i get pods                   <span class="cm"># yes/no</span>
+kubectl auth can-i create deployments         <span class="cm"># yes/no</span>
+kubectl auth can-i --list                     <span class="cm"># list all permissions</span>
+
+<span class="cm"># Check as a ServiceAccount:</span>
+kubectl auth can-i get pods --as=system:serviceaccount:my-ns:my-sa</code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Pod blocked by PodSecurity admission</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Namespace has PodSecurity Standards enforced (restricted/baseline). Your pod tries to run as root or use privileged settings.</div>
+      <div class="pain-fix"><strong>Fix:</strong> Add securityContext to run as non-root:</div>
+      <pre><code><span class="key">securityContext:</span>
+  <span class="key">runAsNonRoot:</span> <span class="val">true</span>
+  <span class="key">runAsUser:</span> <span class="val">1000</span>
+  <span class="key">readOnlyRootFilesystem:</span> <span class="val">true</span>
+  <span class="key">allowPrivilegeEscalation:</span> <span class="val">false</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#ef4444">
+      <span class="pain-severity high">DANGEROUS</span>
+      <span class="pain-name">Secrets committed to Git in plain text</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Base64 is NOT encryption. Anyone who reads the YAML can decode it. Committing secrets to Git = security breach.</div>
+      <div class="pain-fix"><strong>Fix:</strong> Use Sealed Secrets (Bitnami), External Secrets Operator, or HashiCorp Vault. Never commit plain Secrets to Git.</div>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#a78bfa">
+      <span class="pain-severity low">CONFUSING</span>
+      <span class="pain-name">Role vs ClusterRole confusion</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> <code>Role</code> = namespace-scoped (only works in one namespace). <code>ClusterRole</code> = cluster-wide. Using Role when you need ClusterRole = "Forbidden" on resources in other namespaces.</div>
+      <div class="pain-fix"><strong>Rule of thumb:</strong> Use Role + RoleBinding for namespace-specific access. Use ClusterRole + ClusterRoleBinding for cluster-wide access (nodes, PVs, namespaces).</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CATEGORY 6: HELM & GITOPS ===== -->
+<div class="pain-category" onclick="togglePain('pain-helm')">
+  <div class="pain-header">
+    <span class="pain-icon">⎈</span>
+    <span class="pain-title">Helm & GitOps Issues</span>
+    <span class="pain-count">4 pain points</span>
+    <span class="pain-arrow" id="arrow-pain-helm">▼</span>
+  </div>
+</div>
+<div class="pain-body" id="pain-helm">
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Helm values override confusion</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Multiple sources of values: chart defaults → values.yaml → -f custom.yaml → --set flags. Later ones override earlier. Easy to lose track.</div>
+      <div class="pain-fix"><strong>Debug:</strong></div>
+      <pre><code>helm get values my-release                   <span class="cm"># see current values</span>
+helm get values my-release --all             <span class="cm"># including defaults</span>
+helm template my-release ./chart -f vals.yaml <span class="cm"># preview rendered YAML</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">Helm upgrade fails — can't rollback</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-fix"><strong>Fix:</strong></div>
+      <pre><code>helm history my-release                      <span class="cm"># see all revisions</span>
+helm rollback my-release 3                   <span class="cm"># rollback to revision 3</span>
+helm upgrade --atomic my-release ./chart      <span class="cm"># auto-rollback on failure!</span></code></pre>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#fb923c">
+      <span class="pain-severity med">COMMON</span>
+      <span class="pain-name">ArgoCD stuck "OutOfSync"</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-why"><strong>Why:</strong> Live cluster state differs from Git. Could be a manual <code>kubectl edit</code>, auto-generated fields (like service.spec.clusterIP), or Helm hook resources.</div>
+      <div class="pain-fix"><strong>Fix:</strong> Click "App Diff" in ArgoCD UI to see exactly what differs. Add <code>ignoreDifferences</code> in ArgoCD for auto-generated fields. Avoid manual kubectl edits — everything goes through Git.</div>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#a78bfa">
+      <span class="pain-severity low">OCCASIONAL</span>
+      <span class="pain-name">Helm chart version not pinned — breaking updates</span>
+    </div>
+    <div class="pain-detail">
+      <div class="pain-fix"><strong>Fix:</strong> Always pin chart versions:</div>
+      <pre><code>helm install my-app bitnami/nginx <span class="val">--version 15.3.2</span>   <span class="cm"># pin it!</span></code></pre>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CATEGORY 7: DEBUGGING TOOLKIT ===== -->
+<div class="pain-category" onclick="togglePain('pain-debug')">
+  <div class="pain-header">
+    <span class="pain-icon">🔍</span>
+    <span class="pain-title">Debugging Toolkit — The Commands You Need</span>
+    <span class="pain-count">must-know</span>
+    <span class="pain-arrow" id="arrow-pain-debug">▼</span>
+  </div>
+</div>
+<div class="pain-body" id="pain-debug">
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#38bdf8">
+      <span class="pain-severity" style="background:#38bdf8;color:#000">FLOWCHART</span>
+      <span class="pain-name">Pod Won't Start — Decision Tree</span>
+    </div>
+    <div class="pain-detail">
+      <div class="diagram" style="padding:15px;margin:10px 0">
+        <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+          <!-- Start -->
+          <rect x="300" y="5" width="200" height="40" rx="20" fill="#38bdf8" stroke="none"/>
+          <text x="340" y="30" fill="#000" font-size="12" font-weight="bold">Pod won't start?</text>
+
+          <line x1="400" y1="45" x2="400" y2="65" stroke="#38bdf8" stroke-width="2" class="animated-dash"/>
+
+          <!-- Step 1 -->
+          <rect x="280" y="65" width="240" height="35" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+          <text x="295" y="87" fill="#38bdf8" font-size="11">kubectl describe pod NAME</text>
+          <line x1="400" y1="100" x2="400" y2="115" stroke="#38bdf8" stroke-width="1.5" class="animated-dash"/>
+
+          <!-- Branch: What status? -->
+          <rect x="300" y="115" width="200" height="30" rx="6" fill="#0d1117" stroke="#fb923c"/>
+          <text x="330" y="135" fill="#fb923c" font-size="11">What's the Status?</text>
+
+          <!-- Pending -->
+          <line x1="300" y1="130" x2="100" y2="175" stroke="#ef4444" stroke-width="1.5"/>
+          <rect x="10" y="170" width="190" height="70" rx="6" fill="#3a1a1a" stroke="#ef4444"/>
+          <text x="25" y="190" fill="#ef4444" font-size="11" font-weight="bold">Pending</text>
+          <text x="25" y="207" fill="#94a3b8" font-size="10">→ No node has resources</text>
+          <text x="25" y="222" fill="#94a3b8" font-size="10">→ Node selector no match</text>
+          <text x="25" y="237" fill="#94a3b8" font-size="10">→ PVC not bound</text>
+
+          <!-- ImagePull -->
+          <line x1="350" y1="145" x2="280" y2="175" stroke="#fb923c" stroke-width="1.5"/>
+          <rect x="210" y="260" width="190" height="70" rx="6" fill="#3a2a1a" stroke="#fb923c"/>
+          <text x="225" y="280" fill="#fb923c" font-size="11" font-weight="bold">ImagePullBackOff</text>
+          <text x="225" y="297" fill="#94a3b8" font-size="10">→ Wrong image name/tag</text>
+          <text x="225" y="312" fill="#94a3b8" font-size="10">→ No registry credentials</text>
+          <text x="225" y="327" fill="#94a3b8" font-size="10">→ Private registry</text>
+          <line x1="280" y1="240" x2="300" y2="260" stroke="#fb923c" stroke-width="1" stroke-dasharray="3"/>
+
+          <!-- CrashLoop -->
+          <line x1="450" y1="145" x2="530" y2="175" stroke="#ef4444" stroke-width="1.5"/>
+          <rect x="430" y="170" width="190" height="70" rx="6" fill="#3a1a1a" stroke="#ef4444"/>
+          <text x="445" y="190" fill="#ef4444" font-size="11" font-weight="bold">CrashLoopBackOff</text>
+          <text x="445" y="207" fill="#94a3b8" font-size="10">→ kubectl logs --previous</text>
+          <text x="445" y="222" fill="#94a3b8" font-size="10">→ App error / missing env</text>
+          <text x="445" y="237" fill="#94a3b8" font-size="10">→ Wrong CMD / entrypoint</text>
+
+          <!-- Running but not Ready -->
+          <line x1="500" y1="130" x2="680" y2="175" stroke="#a78bfa" stroke-width="1.5"/>
+          <rect x="620" y="170" width="170" height="70" rx="6" fill="#1e293b" stroke="#a78bfa"/>
+          <text x="635" y="190" fill="#a78bfa" font-size="11" font-weight="bold">Running 0/1</text>
+          <text x="635" y="207" fill="#94a3b8" font-size="10">→ Readiness probe failing</text>
+          <text x="635" y="222" fill="#94a3b8" font-size="10">→ Wrong health endpoint</text>
+          <text x="635" y="237" fill="#94a3b8" font-size="10">→ App not listening yet</text>
+
+          <!-- Bottom commands -->
+          <rect x="10" y="345" width="780" height="30" rx="4" fill="#0d1117"/>
+          <text x="25" y="365" fill="#38bdf8" font-size="11">Always check: <tspan fill="#e2e8f0">kubectl get events --sort-by=.lastTimestamp | tail -20</tspan>   <tspan fill="#94a3b8">← shows EVERYTHING that happened</tspan></text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="pain-item">
+    <div class="pain-item-header" style="border-color:#34d399">
+      <span class="pain-severity" style="background:#34d399;color:#000">COMMANDS</span>
+      <span class="pain-name">Essential Debug Commands Cheatsheet</span>
+    </div>
+    <div class="pain-detail">
+      <pre><code><span class="cm"># ━━━ FIRST RESPONSE (run these first for any issue) ━━━</span>
+kubectl get pods -o wide                     <span class="cm"># status + node + IP</span>
+kubectl describe pod PODNAME                 <span class="cm"># full detail + events</span>
+kubectl get events --sort-by=.lastTimestamp  <span class="cm"># recent cluster events</span>
+
+<span class="cm"># ━━━ LOGS ━━━</span>
+kubectl logs PODNAME                         <span class="cm"># current logs</span>
+kubectl logs PODNAME --previous              <span class="cm"># crashed container logs</span>
+kubectl logs PODNAME -c CONTAINER            <span class="cm"># specific container</span>
+kubectl logs -l app=my-app --all-containers  <span class="cm"># all pods with label</span>
+
+<span class="cm"># ━━━ SHELL INTO POD ━━━</span>
+kubectl exec -it PODNAME -- /bin/sh          <span class="cm"># shell access</span>
+kubectl exec -it PODNAME -- env              <span class="cm"># check environment vars</span>
+kubectl exec -it PODNAME -- cat /etc/config  <span class="cm"># check mounted files</span>
+
+<span class="cm"># ━━━ NETWORKING DEBUG ━━━</span>
+kubectl get endpoints SVCNAME                <span class="cm"># pods registered? ← CHECK THIS FIRST</span>
+kubectl port-forward svc/SVCNAME 8080:80     <span class="cm"># test from your machine</span>
+kubectl exec -it PODNAME -- nslookup SVCNAME <span class="cm"># DNS working?</span>
+kubectl exec -it PODNAME -- curl SVCNAME:80  <span class="cm"># can pod reach service?</span>
+
+<span class="cm"># ━━━ RESOURCE USAGE ━━━</span>
+kubectl top pods                             <span class="cm"># CPU/memory per pod</span>
+kubectl top nodes                            <span class="cm"># CPU/memory per node</span>
+
+<span class="cm"># ━━━ NUCLEAR DEBUG (ephemeral debug container) ━━━</span>
+kubectl debug -it PODNAME --image=nicolaka/netshoot -- bash
+<span class="cm"># ↑ attaches a debug container with curl, nslookup, tcpdump, etc.</span></code></pre>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- end painAccordion -->
+</section>
+
+<!-- ===================== SECURITY ===================== -->
+<section id="security" class="fade-in">
+<h2>19. Security Best Practices</h2>
+<ul class="checklist">
+  <li>Use <strong>Namespaces</strong> for isolation</li>
+  <li>Apply <strong>NetworkPolicies</strong> (zero-trust)</li>
+  <li>Use <strong>RBAC</strong> — never cluster-admin for apps</li>
+  <li>Run containers as <strong>non-root</strong></li>
+  <li>Set <strong>resource limits</strong> (CPU/memory) on every container</li>
+  <li>Scan images with <strong>Trivy</strong> in CI</li>
+  <li>Encrypt Secrets at rest</li>
+  <li>Use <strong>Service Mesh</strong> (Istio/Linkerd) for mTLS</li>
+</ul>
+
+<pre><code><span class="key">resources:</span>
+  <span class="key">requests:</span> { <span class="key">cpu:</span> <span class="str">"100m"</span>, <span class="key">memory:</span> <span class="str">"128Mi"</span> }
+  <span class="key">limits:</span>   { <span class="key">cpu:</span> <span class="str">"500m"</span>, <span class="key">memory:</span> <span class="str">"256Mi"</span> }</code></pre>
+</section>
+
+<!-- ===================== TOOLS ===================== -->
+<section id="tools" class="fade-in">
+<h2>19. Essential Tools</h2>
+<div class="card-grid">
+  <div class="card"><div class="icon">🐳</div><h4>Docker / Podman</h4><p>Build containers. Learn multi-stage builds.</p></div>
+  <div class="card"><div class="icon">🏗️</div><h4>Terraform</h4><p>Infrastructure as Code. Provision EKS/GKE clusters.</p></div>
+  <div class="card"><div class="icon">⚡</div><h4>k3s / kind</h4><p>Lightweight K8s for local dev and learning.</p></div>
+  <div class="card"><div class="icon">🔒</div><h4>Vault</h4><p>Production secrets management.</p></div>
+  <div class="card"><div class="icon">🌐</div><h4>Istio / Linkerd</h4><p>Service mesh: mTLS, traffic mgmt.</p></div>
+  <div class="card"><div class="icon">📦</div><h4>Harbor / ECR</h4><p>Container registries with vulnerability scanning.</p></div>
+</div>
+</section>
+
+<!-- ===================== LEARNING TIPS ===================== -->
+<section id="learning" class="fade-in">
+<h2>20. Speed-Learning Tips</h2>
+<div class="card-grid">
+  <div class="card" style="border-color:var(--accent)"><div class="icon">🎯</div><h4>Learn by Breaking</h4><p>Use <code>kind</code>, deploy, then break things on purpose. Debugging = fastest learning.</p></div>
+  <div class="card" style="border-color:var(--accent2)"><div class="icon">📋</div><h4>3-YAML Rule</h4><p>Most apps = Deployment + Service + Ingress. Master these first.</p></div>
+  <div class="card" style="border-color:var(--accent3)"><div class="icon">🔧</div><h4>kubectl explain</h4><p><code>kubectl explain deploy.spec --recursive</code> — built-in docs!</p></div>
+  <div class="card" style="border-color:var(--accent4)"><div class="icon">⚡</div><h4>Shell Aliases</h4><p><code>alias k=kubectl</code>, <code>alias kgp='k get pods'</code>. Speed compounds.</p></div>
+  <div class="card" style="border-color:var(--accent5)"><div class="icon">🧪</div><h4>Study CKA</h4><p>Even without taking it, the curriculum is perfect. Use killer.sh.</p></div>
+  <div class="card" style="border-color:var(--accent)"><div class="icon">📺</div><h4>Visual Resources</h4><p>Nana TechWorld (YouTube), KodeKloud (labs), Play with K8s (free).</p></div>
+</div>
+
+<div class="tip">
+  <div class="tip-title">30-Day Plan</div>
+  <strong>Week 1:</strong> Pod, Deployment, Service, Labels &nbsp;|&nbsp;
+  <strong>Week 2:</strong> ConfigMaps, Secrets, Volumes &nbsp;|&nbsp;
+  <strong>Week 3:</strong> Ingress, RBAC, Health Probes &nbsp;|&nbsp;
+  <strong>Week 4:</strong> Helm, CI/CD, ArgoCD, Monitoring
+</div>
+</section>
+
+<!-- ===================== CHEATSHEET ===================== -->
+<section id="cheatsheet" class="fade-in">
+<h2>21. kubectl Cheatsheet</h2>
+<pre><code><span class="cm"># ━━━ GET INFO ━━━</span>
+kubectl get pods -o wide              <span class="cm"># IPs and nodes</span>
+kubectl get svc,deploy,ingress        <span class="cm"># multiple types</span>
+kubectl describe pod my-pod           <span class="cm"># detail + events</span>
+
+<span class="cm"># ━━━ DEBUG ━━━</span>
+kubectl logs my-pod                   <span class="cm"># view logs</span>
+kubectl logs my-pod --previous        <span class="cm"># crashed container logs</span>
+kubectl exec -it my-pod -- /bin/sh    <span class="cm"># shell into pod</span>
+kubectl port-forward svc/my-svc 8080:80
+
+<span class="cm"># ━━━ CREATE / UPDATE ━━━</span>
+kubectl apply -f deployment.yaml
+kubectl scale deploy my-app --replicas=5
+kubectl rollout restart deploy my-app
+kubectl rollout undo deploy my-app    <span class="cm"># rollback!</span>
+
+<span class="cm"># ━━━ GENERATE YAML ━━━</span>
+kubectl create deploy my-app --image=nginx --dry-run=client -o yaml > deploy.yaml
+
+<span class="cm"># ━━━ CONTEXT ━━━</span>
+kubectl config use-context my-cluster
+kubectl config set-context --current --namespace=dev</code></pre>
+</section>
+
+<!-- ===================== COMPLETE EXAMPLE ===================== -->
+<section id="example" class="fade-in">
+<h2>Bonus: Complete Working Example</h2>
+
+<div class="tabs">
+  <div class="tab-btn active" onclick="showTab('tab-deploy')">deployment.yaml</div>
+  <div class="tab-btn" onclick="showTab('tab-svc')">service.yaml</div>
+  <div class="tab-btn" onclick="showTab('tab-secret')">secret.yaml</div>
+  <div class="tab-btn" onclick="showTab('tab-pvc')">pvc.yaml</div>
+  <div class="tab-btn" onclick="showTab('tab-ingress')">ingress.yaml</div>
+</div>
+
+<div class="tab-content active" id="tab-deploy">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">apps/v1</span>
+<span class="kw">kind:</span> <span class="str">Deployment</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">web-app</span>
+<span class="kw">spec:</span>
+  <span class="key">replicas:</span> <span class="val">3</span>
+  <span class="key">selector:</span>
+    <span class="key">matchLabels:</span>
+      <span class="key">app:</span> <span class="str">web-app</span>
+  <span class="key">template:</span>
+    <span class="key">metadata:</span>
+      <span class="key">labels:</span>
+        <span class="key">app:</span> <span class="str">web-app</span>
+    <span class="key">spec:</span>
+      <span class="key">containers:</span>
+      - <span class="key">name:</span> <span class="str">web</span>
+        <span class="key">image:</span> <span class="str">my-web-app:2.0</span>
+        <span class="key">ports:</span>
+        - <span class="key">containerPort:</span> <span class="val">3000</span>
+        <span class="key">env:</span>
+        - <span class="key">name:</span> <span class="str">DB_HOST</span>
+          <span class="key">value:</span> <span class="str">postgres-svc</span>    <span class="cm"># ← Service name = hostname!</span>
+        - <span class="key">name:</span> <span class="str">DB_PASSWORD</span>
+          <span class="key">valueFrom:</span>
+            <span class="key">secretKeyRef:</span>
+              <span class="key">name:</span> <span class="str">db-creds</span>
+              <span class="key">key:</span> <span class="str">password</span>
+        <span class="key">resources:</span>
+          <span class="key">requests:</span> { <span class="key">cpu:</span> <span class="str">"100m"</span>, <span class="key">memory:</span> <span class="str">"128Mi"</span> }
+          <span class="key">limits:</span>   { <span class="key">cpu:</span> <span class="str">"500m"</span>, <span class="key">memory:</span> <span class="str">"256Mi"</span> }
+        <span class="key">livenessProbe:</span>
+          <span class="key">httpGet:</span> { <span class="key">path:</span> <span class="str">/healthz</span>, <span class="key">port:</span> <span class="val">3000</span> }
+        <span class="key">readinessProbe:</span>
+          <span class="key">httpGet:</span> { <span class="key">path:</span> <span class="str">/ready</span>, <span class="key">port:</span> <span class="val">3000</span> }</code></pre>
+</div>
+
+<div class="tab-content" id="tab-svc">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Service</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">web-app-svc</span>
+<span class="kw">spec:</span>
+  <span class="key">selector:</span>
+    <span class="key">app:</span> <span class="str">web-app</span>            <span class="cm"># ← matches Deployment labels!</span>
+  <span class="key">ports:</span>
+  - <span class="key">port:</span> <span class="val">80</span>                 <span class="cm"># ← Service port</span>
+    <span class="key">targetPort:</span> <span class="val">3000</span>          <span class="cm"># ← container port</span>
+---
+<span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Service</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">postgres-svc</span>         <span class="cm"># ← this IS the DB_HOST!</span>
+<span class="kw">spec:</span>
+  <span class="key">selector:</span>
+    <span class="key">app:</span> <span class="str">postgres</span>
+  <span class="key">ports:</span>
+  - <span class="key">port:</span> <span class="val">5432</span>
+    <span class="key">targetPort:</span> <span class="val">5432</span></code></pre>
+</div>
+
+<div class="tab-content" id="tab-secret">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Secret</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">db-creds</span>
+<span class="kw">type:</span> <span class="str">Opaque</span>
+<span class="kw">stringData:</span>
+  <span class="key">username:</span> <span class="str">admin</span>
+  <span class="key">password:</span> <span class="str">supersecret123</span></code></pre>
+</div>
+
+<div class="tab-content" id="tab-pvc">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">PersistentVolumeClaim</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">postgres-pvc</span>
+<span class="kw">spec:</span>
+  <span class="key">accessModes:</span> [<span class="str">ReadWriteOnce</span>]
+  <span class="key">resources:</span>
+    <span class="key">requests:</span>
+      <span class="key">storage:</span> <span class="val">10Gi</span>
+  <span class="key">storageClassName:</span> <span class="str">standard</span></code></pre>
+</div>
+
+<div class="tab-content" id="tab-ingress">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">networking.k8s.io/v1</span>
+<span class="kw">kind:</span> <span class="str">Ingress</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">web-ingress</span>
+<span class="kw">spec:</span>
+  <span class="key">rules:</span>
+  - <span class="key">host:</span> <span class="str">myapp.example.com</span>
+    <span class="key">http:</span>
+      <span class="key">paths:</span>
+      - <span class="key">path:</span> <span class="str">/</span>
+        <span class="key">pathType:</span> <span class="str">Prefix</span>
+        <span class="key">backend:</span>
+          <span class="key">service:</span>
+            <span class="key">name:</span> <span class="str">web-app-svc</span>
+            <span class="key">port:</span>
+              <span class="key">number:</span> <span class="val">80</span></code></pre>
+</div>
+</section>
+
+</div> <!-- end .main -->
+
+<script>
+// ==================== COPY BUTTON FOR CODE BLOCKS ====================
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('pre').forEach(pre => {
+    // Skip pre blocks inside SVGs or diagrams that aren't real code
+    if (pre.closest('svg')) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span>Copy</span>';
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Get plain text content (strips HTML tags)
+      const code = pre.querySelector('code') || pre;
+      const text = code.textContent;
+
+      navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('copied');
+        btn.querySelector('span').textContent = 'Copied!';
+        btn.querySelector('svg').innerHTML = '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.querySelector('span').textContent = 'Copy';
+          btn.querySelector('svg').innerHTML = '<path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>';
+        }, 2000);
+      }).catch(() => {
+        // Fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;left:-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.classList.add('copied');
+        btn.querySelector('span').textContent = 'Copied!';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.querySelector('span').textContent = 'Copy';
+        }, 2000);
+      });
+    });
+
+    pre.appendChild(btn);
+
+    // Auto-detect language and add label
+    const text = (pre.querySelector('code') || pre).textContent;
+    let lang = '';
+    if (/^(apiVersion:|kind:|metadata:|spec:)/m.test(text)) {
+      lang = 'yaml';
+    } else if (/^(kubectl |helm |docker |git |npm |pip )/m.test(text)) {
+      lang = 'shell';
+    } else if (/^(# ━━━|# Create|# Essential|# Quick|# Best|# Fix|# Check|# Debug|# Wrong|# Correct|# Test)/m.test(text)) {
+      lang = 'shell';
+    } else if (/^(env:|volumeMounts:|containers:|resources:|securityContext:|livenessProbe:|readinessProbe:|ingress:|spec:|ports:)/m.test(text.trim())) {
+      lang = 'yaml';
+    }
+
+    if (lang) {
+      const label = document.createElement('span');
+      label.className = 'code-lang';
+      label.textContent = lang;
+      pre.appendChild(label);
+      pre.classList.add('has-lang');
+    }
+  });
+});
+
+// ==================== PAIN POINTS ACCORDION ====================
+function togglePain(id) {
+  const body = document.getElementById(id);
+  const arrow = document.getElementById('arrow-' + id);
+  const isOpen = body.classList.contains('open');
+
+  // Close all
+  document.querySelectorAll('.pain-body').forEach(b => b.classList.remove('open'));
+  document.querySelectorAll('.pain-arrow').forEach(a => a.classList.remove('open'));
+
+  // Open clicked (if it was closed)
+  if (!isOpen) {
+    body.classList.add('open');
+    arrow.classList.add('open');
+  }
+}
+
+// ==================== TAB SWITCHING ====================
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ==================== SCROLL PROGRESS ====================
+window.addEventListener('scroll', () => {
+  const s = document.documentElement.scrollTop;
+  const h = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  document.getElementById('progressFill').style.width = (s / h * 100) + '%';
+});
+
+// ==================== ACTIVE NAV ====================
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.sidebar a');
+window.addEventListener('scroll', () => {
+  let cur = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) cur = s.id; });
+  navLinks.forEach(l => {
+    l.classList.remove('active');
+    if (l.getAttribute('href') === '#' + cur) l.classList.add('active');
+  });
+});
+
+// ==================== FADE-IN ON SCROLL ====================
+const fadeEls = document.querySelectorAll('.fade-in');
+const fadeObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+fadeEls.forEach(el => fadeObserver.observe(el));
+
+// ==================== PORT FLOW SIMULATOR ====================
+let simState = {
+  pods: [
+    { id:1, alive:true, requests:0 },
+    { id:2, alive:true, requests:0 },
+    { id:3, alive:true, requests:0 }
+  ],
+  totalRequests: 0,
+  nextPod: 0
+};
+
+function simLog(msg) {
+  const log = document.getElementById('sim-log');
+  log.textContent = msg;
+  log.style.borderColor = 'var(--accent)';
+  setTimeout(() => log.style.borderColor = 'var(--border)', 1000);
+}
+
+function simUpdateUI() {
+  simState.pods.forEach(p => {
+    const health = document.getElementById('sim-pod' + p.id + '-health');
+    const text = document.getElementById('sim-pod' + p.id + '-text');
+    const rect = document.getElementById('sim-pod' + p.id);
+    if (p.alive) {
+      health.setAttribute('fill', '#34d399');
+      text.textContent = 'Ready ✓ (' + p.requests + ' req)';
+      rect.setAttribute('stroke', '#34d399');
+    } else {
+      health.setAttribute('fill', '#ef4444');
+      text.textContent = 'Down ✗';
+      rect.setAttribute('stroke', '#ef4444');
+    }
+  });
+  document.getElementById('sim-svc-count').textContent = 'Requests: ' + simState.totalRequests;
+}
+
+function simSendRequest() {
+  const alive = simState.pods.filter(p => p.alive);
+  if (alive.length === 0) {
+    simLog('❌ No healthy pods! All requests are failing. Service returns 503.');
+    document.getElementById('sim-svc-text').textContent = '503 Error!';
+    return;
+  }
+
+  simState.totalRequests++;
+  // Round-robin among alive pods
+  let target = alive[simState.nextPod % alive.length];
+  simState.nextPod++;
+  target.requests++;
+
+  // Animate packet
+  const packet = document.getElementById('sim-packet');
+  const podRect = document.getElementById('sim-pod' + target.id);
+  const podY = parseFloat(podRect.getAttribute('y')) + 30;
+
+  packet.setAttribute('opacity', '1');
+  packet.setAttribute('fill', '#38bdf8');
+
+  // Animate: user → service → pod
+  const anim = packet.animate([
+    { cx: 60, cy: 117, offset: 0 },
+    { cx: 290, cy: 120, offset: 0.4 },
+    { cx: 560, cy: podY, offset: 1 }
+  ], { duration: 800, fill: 'forwards' });
+
+  anim.onfinish = () => {
+    packet.setAttribute('opacity', '0');
+    // Flash the pod
+    podRect.setAttribute('stroke-width', '3');
+    podRect.setAttribute('stroke', '#38bdf8');
+    setTimeout(() => {
+      podRect.setAttribute('stroke-width', '1.5');
+      podRect.setAttribute('stroke', '#34d399');
+    }, 300);
+  };
+
+  document.getElementById('sim-svc-text').textContent = '→ Pod ' + target.id;
+  simLog('✅ Request #' + simState.totalRequests + ' routed to Pod ' + target.id + ' (round-robin). targetPort:8080 → container receives it.');
+  simUpdateUI();
+}
+
+function simKillPod() {
+  const alive = simState.pods.filter(p => p.alive);
+  if (alive.length === 0) { simLog('No pods left to kill!'); return; }
+  const victim = alive[Math.floor(Math.random() * alive.length)];
+  victim.alive = false;
+
+  // Flash red
+  const rect = document.getElementById('sim-pod' + victim.id);
+  rect.setAttribute('stroke', '#ef4444');
+  rect.setAttribute('stroke-width', '3');
+
+  simLog('💥 Pod ' + victim.id + ' killed! Service removes it from endpoints. Remaining: ' +
+    simState.pods.filter(p=>p.alive).length + ' pods. K8s ReplicaSet will recreate it soon...');
+
+  // Simulate ReplicaSet recreation after 3s
+  setTimeout(() => {
+    if (!victim.alive) {
+      victim.alive = true;
+      victim.requests = 0;
+      simLog('🔄 ReplicaSet detected missing pod! Pod ' + victim.id + ' recreated and healthy. Self-healing complete.');
+      simUpdateUI();
+    }
+  }, 4000);
+
+  simUpdateUI();
+}
+
+function simScaleUp() {
+  const newId = simState.pods.length + 1;
+  if (newId > 6) { simLog('Maximum 6 pods for this demo.'); return; }
+  simState.pods.push({ id: newId, alive: true, requests: 0 });
+
+  // Dynamically add pod to SVG
+  const svg = document.getElementById('simSvg');
+  const vb = svg.getAttribute('viewBox').split(' ');
+  const newH = parseInt(vb[3]) + 80;
+  svg.setAttribute('viewBox', '0 0 ' + vb[2] + ' ' + newH);
+
+  const yPos = 20 + (newId - 1) * 80;
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.innerHTML = `
+    <rect id="sim-pod${newId}" x="480" y="${yPos}" width="160" height="65" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="500" y="${yPos+25}" fill="#34d399" font-size="12" font-weight="bold">Pod ${newId} :8080</text>
+    <text x="500" y="${yPos+45}" fill="#94a3b8" font-size="10" id="sim-pod${newId}-text">Ready ✓</text>
+    <circle id="sim-pod${newId}-health" cx="620" cy="${yPos+25}" r="6" fill="#34d399"/>
+    <line x1="380" y1="${100 + (newId-2)*20}" x2="480" y2="${yPos+30}" stroke="#34d399" stroke-width="1.5" stroke-dasharray="6 3" class="animated-dash"/>
+  `;
+  g.style.animation = 'scaleIn 0.4s ease-out both';
+  svg.appendChild(g);
+
+  simLog('📈 Scaled to ' + simState.pods.length + ' pods! kubectl scale deploy my-app --replicas=' + simState.pods.length);
+  simUpdateUI();
+}
+
+function simReset() {
+  // Remove extra pods from SVG
+  const svg = document.getElementById('simSvg');
+  svg.setAttribute('viewBox', '0 0 800 250');
+  while (simState.pods.length > 3) {
+    const extra = simState.pods.pop();
+    const el = document.getElementById('sim-pod' + extra.id);
+    if (el && el.parentElement.tagName === 'g') el.parentElement.remove();
+    else if (el) el.remove();
+  }
+
+  simState.pods = [
+    { id:1, alive:true, requests:0 },
+    { id:2, alive:true, requests:0 },
+    { id:3, alive:true, requests:0 }
+  ];
+  simState.totalRequests = 0;
+  simState.nextPod = 0;
+
+  document.getElementById('sim-svc-text').textContent = 'Waiting...';
+  simLog('🔄 Reset complete. Ready for simulation.');
+  simUpdateUI();
+}
+
+// ==================== NETWORKING SIMULATOR ====================
+let netState = { labelsMatch: true, policyBlocked: false, pod1Alive: true, pod2Alive: true };
+
+function netSimLog(msg) {
+  const log = document.getElementById('net-sim-log');
+  log.textContent = msg;
+  log.style.borderColor = 'var(--accent)';
+  setTimeout(() => log.style.borderColor = 'var(--border)', 1500);
+}
+
+function netSimQuery() {
+  const dns = document.getElementById('ns-dns-text');
+  const detail = document.getElementById('ns-dns-detail');
+  if (netState.labelsMatch) {
+    dns.textContent = 'db-svc.backend → 10.96.100.20 (ClusterIP)';
+    detail.textContent = 'Endpoints: [10.244.2.8:5432, 10.244.1.9:5432]';
+    dns.setAttribute('fill', '#34d399');
+    netSimLog('🔍 DNS resolved! db-svc.backend.svc.cluster.local → ClusterIP 10.96.100.20. CoreDNS found 2 endpoints (healthy pods with matching labels).');
+  } else {
+    dns.textContent = 'db-svc.backend → 10.96.100.20 (but 0 endpoints!)';
+    detail.textContent = '⚠️ Endpoints: [] — labels don\'t match!';
+    dns.setAttribute('fill', '#ef4444');
+    netSimLog('⚠️ DNS resolves to ClusterIP, but Endpoints list is EMPTY! Labels don\'t match the selector. Requests will get "connection refused" or timeout.');
+  }
+}
+
+function netSimSendTraffic() {
+  if (netState.policyBlocked) {
+    netSimLog('🛡️ BLOCKED by NetworkPolicy! The frontend namespace is not allowed to reach backend:5432. Traffic dropped at the network level. No response.');
+    const line = document.getElementById('ns-connect-line');
+    line.setAttribute('stroke', '#ef4444');
+    line.setAttribute('stroke-dasharray', '3');
+    setTimeout(() => { line.setAttribute('stroke', '#a78bfa'); line.setAttribute('stroke-dasharray', '8 4'); }, 2000);
+    return;
+  }
+
+  if (!netState.labelsMatch) {
+    netSimLog('❌ Request sent to db-svc.backend:5432 but got "connection refused"! Service has no Endpoints because labels don\'t match. Fix: check kubectl get endpoints db-svc -n backend');
+    return;
+  }
+
+  // Animate packet
+  const packet = document.getElementById('ns-packet');
+  packet.setAttribute('opacity', '1');
+  packet.setAttribute('fill', '#38bdf8');
+
+  const target = (Math.random() > 0.5 && netState.pod1Alive) || !netState.pod2Alive ? '1' : '2';
+  const targetY = target === '1' ? 155 : 155;
+  const targetX = target === '1' ? 450 : 630;
+
+  const anim = packet.animate([
+    { cx: 270, cy: 235, offset: 0 },
+    { cx: 370, cy: 82, offset: 0.4 },
+    { cx: targetX, cy: targetY, offset: 1 }
+  ], { duration: 1000, fill: 'forwards' });
+
+  anim.onfinish = () => {
+    packet.setAttribute('opacity', '0');
+    // Flash target pod
+    const podEl = document.getElementById('ns-back-pod' + target);
+    podEl.setAttribute('stroke', '#38bdf8');
+    podEl.setAttribute('stroke-width', '3');
+    setTimeout(() => { podEl.setAttribute('stroke', '#34d399'); podEl.setAttribute('stroke-width', '1.5'); }, 500);
+  };
+
+  netSimLog('✅ web-pod → db-svc.backend:5432 → kube-proxy DNAT → db-pod-' + target + ' (10.244.' + (target==='1'?'2.8':'1.9') + ':5432). Query executed! Response flows back via reverse NAT.');
+}
+
+function netSimBreakLabel() {
+  netState.labelsMatch = !netState.labelsMatch;
+  const svc = document.getElementById('ns-back-svc');
+  const status = document.getElementById('ns-back-svc-status');
+
+  if (!netState.labelsMatch) {
+    svc.setAttribute('stroke', '#ef4444');
+    status.textContent = 'selector: app=postgresDB ← TYPO!';
+    status.setAttribute('fill', '#ef4444');
+    document.getElementById('ns-back-pod1').setAttribute('stroke-dasharray', '4');
+    document.getElementById('ns-back-pod2').setAttribute('stroke-dasharray', '4');
+    netSimLog('🏷️ Label mismatch! Service selector changed to "app=postgresDB" but pods have "app=postgres". Endpoints = 0. All traffic will fail! This is the #1 K8s networking bug.');
+  } else {
+    svc.setAttribute('stroke', '#fb923c');
+    status.textContent = 'selector: app=postgres ✓ Fixed!';
+    status.setAttribute('fill', '#34d399');
+    document.getElementById('ns-back-pod1').removeAttribute('stroke-dasharray');
+    document.getElementById('ns-back-pod2').removeAttribute('stroke-dasharray');
+    netSimLog('✅ Labels fixed! selector: app=postgres now matches the pods. Endpoints restored. Traffic will flow again.');
+  }
+}
+
+function netSimNetworkPolicy() {
+  netState.policyBlocked = !netState.policyBlocked;
+  const line = document.getElementById('ns-connect-line');
+
+  if (netState.policyBlocked) {
+    line.setAttribute('stroke', '#ef4444');
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('stroke-dasharray', '3');
+    netSimLog('🛡️ NetworkPolicy applied! Only pods in namespace "monitoring" can reach backend:5432. Frontend is BLOCKED. This is zero-trust networking — deny by default.');
+  } else {
+    line.setAttribute('stroke', '#a78bfa');
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke-dasharray', '8 4');
+    netSimLog('🔓 NetworkPolicy removed. All namespaces can reach backend again. Default K8s = allow all. Use NetworkPolicy for production security!');
+  }
+}
+
+// ==================== CACHE/UPDATE SIMULATOR ====================
+let cacheState = { registryVer: 1, nodeVer: 1, podVer: 1, imagePushed: false, uniqueTag: false };
+
+function cacheLog(msg) {
+  document.getElementById('cache-sim-log').textContent = msg;
+}
+function cacheSetStatus(msg) {
+  document.getElementById('cache-status-text').textContent = msg;
+}
+function cacheSetK8s(msg, color) {
+  const el = document.getElementById('cache-k8s-text');
+  el.textContent = msg;
+  el.setAttribute('fill', color || '#94a3b8');
+}
+function cacheSetPods(ver, color) {
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('cache-pod' + i + '-text').textContent = 'Running v' + ver + (ver === cacheState.registryVer ? ' (new ✓)' : ' (old)');
+    document.getElementById('cache-pod' + i + '-dot').setAttribute('fill', color);
+    document.getElementById('cache-pod' + i).setAttribute('stroke', color);
+  }
+  cacheState.podVer = ver;
+}
+
+function cachePushImage() {
+  cacheState.registryVer++;
+  cacheState.imagePushed = true;
+  document.getElementById('cache-registry-ver').textContent = 'Image v' + cacheState.registryVer + ' (NEW code!)';
+  document.getElementById('cache-registry-ver').setAttribute('fill', '#34d399');
+  // Node still has old cache
+  document.getElementById('cache-node-ver').textContent = 'Image v' + cacheState.nodeVer + ' (stale!)';
+  document.getElementById('cache-node-ver').setAttribute('fill', '#ef4444');
+  document.getElementById('cache-node-box').setAttribute('stroke', '#ef4444');
+  cacheLog('🐳 Pushed my-app:latest with v' + cacheState.registryVer + ' code. BUT the node still has v' + cacheState.nodeVer + ' cached! Now try kubectl apply...');
+  cacheSetStatus('New image pushed to registry. Node cache is stale. Try applying...');
+  cacheSetK8s('Waiting...', '#94a3b8');
+}
+
+function cacheApply() {
+  if (!cacheState.imagePushed && !cacheState.uniqueTag) {
+    cacheLog('📄 Nothing to update — push a new image first.');
+    return;
+  }
+  if (cacheState.uniqueTag) {
+    // Unique tag = YAML changed = works!
+    cacheSetK8s('YAML changed! ✓', '#34d399');
+    document.getElementById('cache-node-ver').textContent = 'Image v' + cacheState.registryVer + ' (pulled!)';
+    document.getElementById('cache-node-ver').setAttribute('fill', '#34d399');
+    document.getElementById('cache-node-box').setAttribute('stroke', '#34d399');
+    cacheState.nodeVer = cacheState.registryVer;
+    cacheSetPods(cacheState.registryVer, '#34d399');
+    cacheSetStatus('Rolling update: v' + (cacheState.registryVer-1) + ' → v' + cacheState.registryVer + ' (zero downtime)');
+    cacheLog('✅ kubectl apply detected YAML change (new image tag)! Rolling update triggered. New image pulled. Pods updated with zero downtime!');
+    cacheState.imagePushed = false;
+    cacheState.uniqueTag = false;
+    return;
+  }
+  // Same tag = YAML identical = NOTHING HAPPENS
+  cacheSetK8s('No change! ✗', '#ef4444');
+  document.getElementById('cache-k8s-decision').setAttribute('stroke', '#ef4444');
+  setTimeout(() => document.getElementById('cache-k8s-decision').setAttribute('stroke', '#475569'), 2000);
+  cacheSetStatus('deployment.apps/my-app unchanged');
+  cacheLog('❌ kubectl apply says "unchanged"! The YAML is identical (still says "my-app:latest"). K8s sees no diff → no rollout. Pods still run OLD v' + cacheState.podVer + ' code. THIS IS YOUR PROBLEM!');
+}
+
+function cacheDelete() {
+  if (!cacheState.imagePushed) { cacheLog('Push a new image first.'); return; }
+  // Show downtime
+  cacheSetPods(0, '#ef4444');
+  document.getElementById('cache-pod1-text').textContent = '💀 Terminated';
+  document.getElementById('cache-pod2-text').textContent = '💀 Terminated';
+  document.getElementById('cache-pod3-text').textContent = '💀 Terminated';
+  cacheSetStatus('⚠️ ALL PODS DOWN — Service returning 503!');
+  cacheSetK8s('Deleted!', '#ef4444');
+  cacheLog('💥 All pods killed! DOWNTIME happening right now. Recreating...');
+
+  setTimeout(() => {
+    cacheState.nodeVer = cacheState.registryVer;
+    document.getElementById('cache-node-ver').textContent = 'Image v' + cacheState.registryVer + ' (pulled!)';
+    document.getElementById('cache-node-ver').setAttribute('fill', '#34d399');
+    document.getElementById('cache-node-box').setAttribute('stroke', '#34d399');
+    cacheSetPods(cacheState.registryVer, '#34d399');
+    cacheSetStatus('Pods back! But there was ' + '~30s downtime. Use rollout restart instead!');
+    cacheSetK8s('Recreated ✓', '#34d399');
+    cacheLog('✅ Pods recreated with v' + cacheState.registryVer + '. BUT you had ~30 seconds of downtime! Users got 503 errors. Use "rollout restart" instead — zero downtime.');
+    cacheState.imagePushed = false;
+  }, 2500);
+}
+
+function cacheRollout() {
+  if (!cacheState.imagePushed) { cacheLog('Push a new image first.'); return; }
+  cacheSetK8s('Rolling...', '#38bdf8');
+  cacheSetStatus('Rolling update: replacing pods one by one...');
+
+  // Animate rolling update — one pod at a time
+  let pods = [1, 2, 3];
+  let i = 0;
+  function rollNext() {
+    if (i >= pods.length) {
+      cacheState.nodeVer = cacheState.registryVer;
+      document.getElementById('cache-node-ver').textContent = 'Image v' + cacheState.registryVer + ' (pulled!)';
+      document.getElementById('cache-node-ver').setAttribute('fill', '#34d399');
+      document.getElementById('cache-node-box').setAttribute('stroke', '#34d399');
+      cacheSetK8s('Done! ✓', '#34d399');
+      cacheSetStatus('All pods updated to v' + cacheState.registryVer + '. Zero downtime!');
+      cacheLog('✅ Rolling update complete! All pods now run v' + cacheState.registryVer + '. Zero downtime — other pods served traffic while each was restarting. This is the right way!');
+      cacheState.imagePushed = false;
+      return;
+    }
+    let p = pods[i];
+    document.getElementById('cache-pod' + p + '-dot').setAttribute('fill', '#fb923c');
+    document.getElementById('cache-pod' + p + '-text').textContent = 'Restarting...';
+    document.getElementById('cache-pod' + p).setAttribute('stroke', '#fb923c');
+    setTimeout(() => {
+      document.getElementById('cache-pod' + p + '-dot').setAttribute('fill', '#34d399');
+      document.getElementById('cache-pod' + p + '-text').textContent = 'Running v' + cacheState.registryVer + ' (new ✓)';
+      document.getElementById('cache-pod' + p).setAttribute('stroke', '#34d399');
+      cacheState.podVer = cacheState.registryVer;
+      i++;
+      rollNext();
+    }, 800);
+  }
+  rollNext();
+}
+
+function cacheUniqueTag() {
+  cacheState.registryVer++;
+  cacheState.imagePushed = true;
+  cacheState.uniqueTag = true;
+  const tag = 'v' + cacheState.registryVer + '.0';
+  document.getElementById('cache-registry-tag').textContent = 'my-app:' + tag;
+  document.getElementById('cache-registry-ver').textContent = 'Image v' + cacheState.registryVer + ' (NEW!)';
+  document.getElementById('cache-registry-ver').setAttribute('fill', '#34d399');
+  document.getElementById('cache-yaml-tag').textContent = 'image: my-app:' + tag;
+  document.getElementById('cache-yaml-tag').setAttribute('fill', '#34d399');
+  document.getElementById('cache-yaml-policy').textContent = 'pullPolicy: IfNotPresent ✓';
+  cacheLog('★ Built & pushed my-app:' + tag + ' AND updated deployment.yaml with the new tag. Now kubectl apply will see the YAML diff! Click "kubectl apply" to see it work.');
+  cacheSetStatus('YAML updated with unique tag. Apply will trigger rolling update!');
+  cacheSetK8s('Waiting...', '#94a3b8');
+}
+
+function cacheReset() {
+  cacheState = { registryVer: 1, nodeVer: 1, podVer: 1, imagePushed: false, uniqueTag: false };
+  document.getElementById('cache-registry-tag').textContent = 'my-app:latest';
+  document.getElementById('cache-registry-ver').textContent = 'Image v1 (old code)';
+  document.getElementById('cache-registry-ver').setAttribute('fill', '#94a3b8');
+  document.getElementById('cache-node-tag').textContent = 'my-app:latest';
+  document.getElementById('cache-node-ver').textContent = 'Image v1 (cached)';
+  document.getElementById('cache-node-ver').setAttribute('fill', '#94a3b8');
+  document.getElementById('cache-node-box').setAttribute('stroke', '#fb923c');
+  document.getElementById('cache-yaml-tag').textContent = 'image: my-app:latest';
+  document.getElementById('cache-yaml-tag').setAttribute('fill', '#e2e8f0');
+  document.getElementById('cache-yaml-policy').textContent = 'pullPolicy: IfNotPresent';
+  cacheSetPods(1, '#34d399');
+  cacheSetStatus('Ready. Push new image then try kubectl apply...');
+  cacheSetK8s('Waiting...', '#94a3b8');
+  cacheLog('🔄 Reset. Try the simulation again!');
+}
+
+function netSimReset() {
+  netState = { labelsMatch: true, policyBlocked: false, pod1Alive: true, pod2Alive: true };
+  document.getElementById('ns-back-svc').setAttribute('stroke', '#fb923c');
+  document.getElementById('ns-back-svc-status').textContent = 'selector: app=postgres';
+  document.getElementById('ns-back-svc-status').setAttribute('fill', '#94a3b8');
+  document.getElementById('ns-back-pod1').removeAttribute('stroke-dasharray');
+  document.getElementById('ns-back-pod2').removeAttribute('stroke-dasharray');
+  document.getElementById('ns-connect-line').setAttribute('stroke', '#a78bfa');
+  document.getElementById('ns-connect-line').setAttribute('stroke-width', '2');
+  document.getElementById('ns-connect-line').setAttribute('stroke-dasharray', '8 4');
+  document.getElementById('ns-dns-text').textContent = 'db-svc.backend → 10.96.100.20 (ClusterIP)';
+  document.getElementById('ns-dns-text').setAttribute('fill', '#94a3b8');
+  document.getElementById('ns-dns-detail').textContent = '';
+  netSimLog('🔄 Reset complete. Ready for networking simulation.');
+}
+</script>
+
+</body>
+</html>

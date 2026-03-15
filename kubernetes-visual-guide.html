@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubernetes Visual Guide — From Confused to Confident</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --accent5: #f472b6;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #334155;
+    --code-bg: #0d1117;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height:1.7; }
+
+  /* NAV */
+  .sidebar { position:fixed; left:0; top:0; width:280px; height:100vh; background:#0b1120; border-right:1px solid var(--border); overflow-y:auto; z-index:100; padding:20px 0; }
+  .sidebar h2 { padding:0 20px 15px; font-size:15px; color:var(--accent); border-bottom:1px solid var(--border); margin-bottom:10px; letter-spacing:1px; }
+  .sidebar a { display:block; padding:8px 20px; color:var(--muted); text-decoration:none; font-size:13.5px; transition:.2s; border-left:3px solid transparent; }
+  .sidebar a:hover, .sidebar a.active { color:var(--accent); background:rgba(56,189,248,.06); border-left-color:var(--accent); }
+  .sidebar .section-label { padding:15px 20px 5px; font-size:11px; text-transform:uppercase; letter-spacing:2px; color:var(--accent2); }
+
+  .main { margin-left:280px; padding:40px 50px 80px; max-width:1100px; }
+
+  h1 { font-size:2.4em; margin-bottom:8px; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .subtitle { color:var(--muted); font-size:1.1em; margin-bottom:40px; }
+
+  h2 { font-size:1.7em; margin:50px 0 20px; padding-bottom:10px; border-bottom:2px solid var(--border); color:var(--accent); }
+  h3 { font-size:1.2em; margin:30px 0 12px; color:var(--accent3); }
+  h4 { font-size:1em; margin:20px 0 8px; color:var(--accent4); }
+
+  p { margin-bottom:14px; color:var(--text); }
+  .highlight { color:var(--accent); font-weight:600; }
+  .warn { color:var(--accent4); }
+
+  /* VISUAL DIAGRAM BOXES */
+  .diagram { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:30px; margin:20px 0 30px; overflow-x:auto; }
+  .diagram-title { font-size:13px; text-transform:uppercase; letter-spacing:2px; color:var(--accent2); margin-bottom:18px; }
+
+  svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  /* CODE BLOCKS */
+  pre { background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:18px 22px; margin:12px 0 20px; overflow-x:auto; font-size:13.5px; line-height:1.6; }
+  code { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; color:#c9d1d9; }
+  .kw { color:#ff7b72; }
+  .str { color:#a5d6ff; }
+  .cm { color:#8b949e; }
+  .val { color:#79c0ff; }
+  .key { color:#d2a8ff; }
+
+  /* CARDS */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin:20px 0; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:22px; transition:.3s; }
+  .card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 30px rgba(56,189,248,.1); }
+  .card .icon { font-size:2em; margin-bottom:10px; }
+  .card h4 { margin:0 0 8px; color:var(--text); font-size:1.05em; }
+  .card p { font-size:.9em; color:var(--muted); margin:0; }
+
+  /* TIP BOXES */
+  .tip { background:rgba(56,189,248,.08); border-left:4px solid var(--accent); border-radius:0 8px 8px 0; padding:16px 20px; margin:16px 0; }
+  .tip-title { font-weight:700; color:var(--accent); font-size:.85em; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+  .warn-box { background:rgba(251,146,60,.08); border-left:4px solid var(--accent4); border-radius:0 8px 8px 0; padding:16px 20px; margin:16px 0; }
+  .warn-title { font-weight:700; color:var(--accent4); font-size:.85em; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+
+  /* TABLE */
+  table { width:100%; border-collapse:collapse; margin:16px 0; font-size:.92em; }
+  th { background:var(--card); color:var(--accent); text-align:left; padding:12px 16px; border-bottom:2px solid var(--accent); }
+  td { padding:10px 16px; border-bottom:1px solid var(--border); }
+  tr:hover td { background:rgba(56,189,248,.04); }
+
+  /* INTERACTIVE TABS */
+  .tabs { display:flex; gap:4px; margin:20px 0 0; flex-wrap:wrap; }
+  .tab-btn { padding:8px 18px; background:var(--card); border:1px solid var(--border); border-bottom:none; border-radius:8px 8px 0 0; color:var(--muted); cursor:pointer; font-size:13px; transition:.2s; }
+  .tab-btn.active { background:var(--code-bg); color:var(--accent); border-color:var(--accent); }
+  .tab-content { display:none; background:var(--code-bg); border:1px solid var(--border); border-radius:0 8px 8px 8px; padding:22px; margin-bottom:20px; }
+  .tab-content.active { display:block; }
+
+  /* FLOW ARROW */
+  .flow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:16px 0; }
+  .flow-step { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 18px; font-size:.9em; white-space:nowrap; }
+  .flow-arrow { color:var(--accent); font-size:1.4em; }
+
+  /* COMPARISON */
+  .vs-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:16px 0; }
+  .vs-box { background:var(--card); border-radius:10px; padding:20px; border:1px solid var(--border); }
+  .vs-box h4 { margin-top:0; }
+
+  /* CHECKLIST */
+  .checklist { list-style:none; padding:0; margin:12px 0; }
+  .checklist li { padding:6px 0 6px 28px; position:relative; color:var(--text); font-size:.95em; }
+  .checklist li::before { content:'✓'; position:absolute; left:0; color:var(--accent3); font-weight:bold; }
+
+  /* SCROLL PROGRESS */
+  .progress-bar { position:fixed; top:0; left:280px; right:0; height:3px; z-index:200; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3)); width:0%; transition:width .1s; }
+
+  @media(max-width:900px) {
+    .sidebar { display:none; }
+    .main { margin-left:0; padding:20px; }
+    .progress-bar { left:0; }
+    .vs-grid { grid-template-columns:1fr; }
+  }
+
+  /* Animated box highlight */
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,.3)} 50%{box-shadow:0 0 20px 4px rgba(56,189,248,.15)} }
+  .pulse { animation: pulse 3s infinite; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- SIDEBAR NAV -->
+<nav class="sidebar">
+  <h2>☸ K8S GUIDE</h2>
+  <div class="section-label">Core Concepts</div>
+  <a href="#big-picture">The Big Picture</a>
+  <a href="#pod">Pod</a>
+  <a href="#deployment">Deployment</a>
+  <a href="#service">Service &amp; Ports (Key!)</a>
+  <a href="#port-mapping">Port Mapping Visualized</a>
+  <div class="section-label">Storage</div>
+  <a href="#volumes">Volumes &amp; Mounts</a>
+  <a href="#pv-pvc">PV &amp; PVC</a>
+  <a href="#storage-classes">StorageClass</a>
+  <div class="section-label">Config &amp; Secrets</div>
+  <a href="#configmap">ConfigMap</a>
+  <a href="#secrets">Secrets</a>
+  <div class="section-label">Networking</div>
+  <a href="#networking">How Pods Talk</a>
+  <a href="#ingress">Ingress</a>
+  <a href="#dns">DNS in K8s</a>
+  <div class="section-label">DevOps Ecosystem</div>
+  <a href="#helm">Helm</a>
+  <a href="#ci-cd">CI/CD Pipelines</a>
+  <a href="#gitops">GitOps &amp; ArgoCD</a>
+  <a href="#monitoring">Monitoring</a>
+  <a href="#security">Security Best Practices</a>
+  <div class="section-label">Beyond K8s</div>
+  <a href="#tools">Essential Tools</a>
+  <a href="#learning">Speed-Learning Tips</a>
+  <a href="#cheatsheet">Cheatsheet</a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<h1>Kubernetes Visual Guide</h1>
+<p class="subtitle">Everything you need to go from confused to confident — explained visually for fast learners.</p>
+
+<!-- ===================== BIG PICTURE ===================== -->
+<section id="big-picture">
+<h2>1. The Big Picture — How Kubernetes Works</h2>
+<p>Before diving into details, here is how every piece fits together. Think of Kubernetes as a <span class="highlight">city</span>: Nodes are buildings, Pods are apartments, Services are phone numbers, and Volumes are storage rooms.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Kubernetes Architecture Overview</div>
+  <svg viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;">
+    <!-- Control Plane -->
+    <rect x="20" y="20" width="860" height="100" rx="12" fill="#1a1a3e" stroke="#a78bfa" stroke-width="2"/>
+    <text x="40" y="50" fill="#a78bfa" font-size="14" font-weight="bold">CONTROL PLANE (Master)</text>
+    <rect x="40" y="62" width="130" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="60" y="88" fill="#e2e8f0" font-size="12">API Server</text>
+    <rect x="185" y="62" width="130" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="200" y="88" fill="#e2e8f0" font-size="12">etcd (Database)</text>
+    <rect x="330" y="62" width="130" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="352" y="88" fill="#e2e8f0" font-size="12">Scheduler</text>
+    <rect x="475" y="62" width="170" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="490" y="88" fill="#e2e8f0" font-size="12">Controller Manager</text>
+    <rect x="660" y="62" width="200" height="42" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="675" y="88" fill="#e2e8f0" font-size="12">Cloud Controller (optional)</text>
+
+    <!-- Arrow down -->
+    <line x1="450" y1="120" x2="450" y2="155" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+    <text x="460" y="143" fill="#94a3b8" font-size="11">kubectl / API calls</text>
+
+    <!-- Worker Node 1 -->
+    <rect x="20" y="160" width="420" height="300" rx="12" fill="#162032" stroke="#38bdf8" stroke-width="2"/>
+    <text x="40" y="188" fill="#38bdf8" font-size="14" font-weight="bold">WORKER NODE 1</text>
+    <text x="40" y="206" fill="#94a3b8" font-size="11">kubelet + kube-proxy + container runtime</text>
+
+    <!-- Pod 1 -->
+    <rect x="40" y="220" width="180" height="110" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="55" y="242" fill="#34d399" font-size="12" font-weight="bold">Pod (my-app-abc12)</text>
+    <rect x="55" y="252" width="150" height="30" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="65" y="272" fill="#e2e8f0" font-size="11">Container: nginx:1.25</text>
+    <rect x="55" y="290" width="150" height="30" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="65" y="310" fill="#e2e8f0" font-size="11">Volume mount: /data</text>
+
+    <!-- Pod 2 -->
+    <rect x="240" y="220" width="180" height="110" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="255" y="242" fill="#34d399" font-size="12" font-weight="bold">Pod (my-app-def34)</text>
+    <rect x="255" y="252" width="150" height="30" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="265" y="272" fill="#e2e8f0" font-size="11">Container: nginx:1.25</text>
+    <rect x="255" y="290" width="150" height="30" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="265" y="310" fill="#e2e8f0" font-size="11">Volume mount: /data</text>
+
+    <!-- Service box -->
+    <rect x="70" y="350" width="320" height="50" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="2"/>
+    <text x="120" y="380" fill="#fb923c" font-size="13" font-weight="bold">Service: my-app-svc (ClusterIP:80)</text>
+    <!-- arrows from service to pods -->
+    <line x1="150" y1="350" x2="130" y2="330" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+    <line x1="310" y1="350" x2="330" y2="330" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+
+    <!-- Worker Node 2 -->
+    <rect x="460" y="160" width="420" height="300" rx="12" fill="#162032" stroke="#38bdf8" stroke-width="2"/>
+    <text x="480" y="188" fill="#38bdf8" font-size="14" font-weight="bold">WORKER NODE 2</text>
+    <text x="480" y="206" fill="#94a3b8" font-size="11">kubelet + kube-proxy + container runtime</text>
+
+    <!-- Pod 3 -->
+    <rect x="480" y="220" width="180" height="110" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="495" y="242" fill="#34d399" font-size="12" font-weight="bold">Pod (db-xyz56)</text>
+    <rect x="495" y="252" width="150" height="30" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="505" y="272" fill="#e2e8f0" font-size="11">Container: postgres:16</text>
+    <rect x="495" y="290" width="150" height="30" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="505" y="310" fill="#e2e8f0" font-size="11">PVC: db-storage 10Gi</text>
+
+    <!-- PV box -->
+    <rect x="690" y="230" width="170" height="90" rx="8" fill="#1e293b" stroke="#f472b6" stroke-width="1.5"/>
+    <text x="710" y="255" fill="#f472b6" font-size="12" font-weight="bold">PersistentVolume</text>
+    <text x="710" y="275" fill="#94a3b8" font-size="11">10Gi - ReadWriteOnce</text>
+    <text x="710" y="295" fill="#94a3b8" font-size="11">hostPath: /mnt/data</text>
+    <line x1="690" y1="270" x2="660" y2="280" stroke="#f472b6" stroke-width="1.5" stroke-dasharray="5"/>
+
+    <!-- Secret -->
+    <rect x="500" y="350" width="160" height="50" rx="8" fill="#1e293b" stroke="#f472b6" stroke-width="1.5"/>
+    <text x="520" y="380" fill="#f472b6" font-size="12">🔒 Secret: db-creds</text>
+    <line x1="560" y1="350" x2="560" y2="330" stroke="#f472b6" stroke-width="1" stroke-dasharray="4" marker-end="url(#arrowPink)"/>
+
+    <!-- Ingress -->
+    <rect x="530" y="410" width="320" height="42" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="580" y="436" fill="#a78bfa" font-size="12" font-weight="bold">Ingress: app.example.com → Service</text>
+
+    <!-- Arrow markers -->
+    <defs>
+      <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#38bdf8"/></marker>
+      <marker id="arrowOrange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#fb923c"/></marker>
+      <marker id="arrowPink" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f472b6"/></marker>
+      <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#34d399"/></marker>
+    </defs>
+  </svg>
+</div>
+</section>
+
+<!-- ===================== POD ===================== -->
+<section id="pod">
+<h2>2. Pod — The Smallest Unit</h2>
+<p>A Pod is the <span class="highlight">smallest deployable unit</span> in Kubernetes. It wraps one or more containers that share the same network (localhost) and storage.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Inside a Pod</div>
+  <svg viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:600px;">
+    <rect x="10" y="10" width="580" height="200" rx="12" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <text x="30" y="38" fill="#34d399" font-size="14" font-weight="bold">Pod</text>
+    <text x="30" y="55" fill="#94a3b8" font-size="11">IP: 10.244.1.5  |  Shares localhost between containers</text>
+
+    <rect x="30" y="70" width="200" height="60" rx="6" fill="#0d1117" stroke="#38bdf8"/>
+    <text x="45" y="95" fill="#38bdf8" font-size="12" font-weight="bold">Container 1: app</text>
+    <text x="45" y="115" fill="#94a3b8" font-size="11">Listens on :8080</text>
+
+    <rect x="250" y="70" width="200" height="60" rx="6" fill="#0d1117" stroke="#a78bfa"/>
+    <text x="265" y="95" fill="#a78bfa" font-size="12" font-weight="bold">Container 2: sidecar</text>
+    <text x="265" y="115" fill="#94a3b8" font-size="11">Log collector :9090</text>
+
+    <line x1="230" y1="100" x2="250" y2="100" stroke="#fb923c" stroke-width="2" stroke-dasharray="4"/>
+    <text x="225" y="90" fill="#fb923c" font-size="10">localhost</text>
+
+    <rect x="30" y="150" width="430" height="45" rx="6" fill="#0d1117" stroke="#f472b6"/>
+    <text x="45" y="178" fill="#f472b6" font-size="12">📦 Shared Volume: emptyDir mounted at /shared-data</text>
+  </svg>
+</div>
+
+<div class="tip">
+  <div class="tip-title">Key Insight</div>
+  Containers inside the same Pod can talk to each other via <code>localhost</code>. They also share the same IP address. This is why a Pod is <em>not</em> the same as a container — it's a group of tightly-coupled containers.
+</div>
+</section>
+
+<!-- ===================== DEPLOYMENT ===================== -->
+<section id="deployment">
+<h2>3. Deployment — Managing Pods</h2>
+<p>You almost <strong>never</strong> create Pods directly. Instead, you create a <span class="highlight">Deployment</span> which manages a <strong>ReplicaSet</strong>, which manages the Pods. This gives you rolling updates, rollbacks, and scaling.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Deployment → ReplicaSet → Pods</div>
+  <svg viewBox="0 0 750 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:750px;">
+    <rect x="10" y="60" width="160" height="70" rx="10" fill="#2d2b55" stroke="#a78bfa" stroke-width="2"/>
+    <text x="35" y="95" fill="#a78bfa" font-size="13" font-weight="bold">Deployment</text>
+    <text x="35" y="115" fill="#94a3b8" font-size="11">replicas: 3</text>
+
+    <line x1="170" y1="95" x2="230" y2="95" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+    <text x="178" y="88" fill="#94a3b8" font-size="10">creates</text>
+
+    <rect x="230" y="50" width="170" height="90" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <text x="250" y="82" fill="#38bdf8" font-size="13" font-weight="bold">ReplicaSet</text>
+    <text x="250" y="100" fill="#94a3b8" font-size="11">Ensures 3 pods run</text>
+    <text x="250" y="118" fill="#94a3b8" font-size="11">at all times</text>
+
+    <line x1="400" y1="75" x2="470" y2="40" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+    <line x1="400" y1="95" x2="470" y2="95" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+    <line x1="400" y1="115" x2="470" y2="150" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+    <rect x="470" y="15" width="140" height="50" rx="8" fill="#1e293b" stroke="#34d399"/>
+    <text x="490" y="45" fill="#34d399" font-size="12">Pod (abc12)</text>
+    <rect x="470" y="75" width="140" height="50" rx="8" fill="#1e293b" stroke="#34d399"/>
+    <text x="490" y="105" fill="#34d399" font-size="12">Pod (def34)</text>
+    <rect x="470" y="135" width="140" height="50" rx="8" fill="#1e293b" stroke="#34d399"/>
+    <text x="490" y="165" fill="#34d399" font-size="12">Pod (ghi56)</text>
+
+    <text x="630" y="45" fill="#94a3b8" font-size="11">← each has its</text>
+    <text x="630" y="60" fill="#94a3b8" font-size="11">   own IP</text>
+  </svg>
+</div>
+
+<pre><code><span class="cm"># deployment.yaml</span>
+<span class="kw">apiVersion:</span> <span class="str">apps/v1</span>
+<span class="kw">kind:</span> <span class="str">Deployment</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-app</span>
+<span class="kw">spec:</span>
+  <span class="key">replicas:</span> <span class="val">3</span>
+  <span class="key">selector:</span>
+    <span class="key">matchLabels:</span>
+      <span class="key">app:</span> <span class="str">my-app</span>       <span class="cm"># ← must match template labels!</span>
+  <span class="key">template:</span>                   <span class="cm"># ← this IS the Pod spec</span>
+    <span class="key">metadata:</span>
+      <span class="key">labels:</span>
+        <span class="key">app:</span> <span class="str">my-app</span>     <span class="cm"># ← label that Service will find</span>
+    <span class="key">spec:</span>
+      <span class="key">containers:</span>
+      - <span class="key">name:</span> <span class="str">my-app</span>
+        <span class="key">image:</span> <span class="str">my-app:1.0</span>
+        <span class="key">ports:</span>
+        - <span class="key">containerPort:</span> <span class="val">8080</span>  <span class="cm"># ← port your app listens on</span></code></pre>
+</section>
+
+<!-- ===================== SERVICE & PORTS ===================== -->
+<section id="service">
+<h2>4. Service & Ports — The Part That Confuses Everyone</h2>
+<p>This is your #1 confusion, so let's break it down carefully. A <span class="highlight">Service</span> is a stable network endpoint that routes traffic to Pods. Pods come and go (they get new IPs), but a Service stays at the same address.</p>
+
+<h3>The 3 Ports You Must Understand</h3>
+
+<div class="diagram" id="port-mapping">
+  <div class="diagram-title">Port Mapping: How Traffic Flows</div>
+  <svg viewBox="0 0 850 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:850px;">
+    <!-- External user -->
+    <rect x="10" y="120" width="120" height="60" rx="8" fill="#2d2b55" stroke="#a78bfa" stroke-width="2"/>
+    <text x="30" y="148" fill="#a78bfa" font-size="13">🌐 User</text>
+    <text x="30" y="165" fill="#94a3b8" font-size="11">Browser</text>
+
+    <!-- NodePort arrow -->
+    <line x1="130" y1="150" x2="210" y2="150" stroke="#fb923c" stroke-width="3" marker-end="url(#arrowOrange)"/>
+    <text x="140" y="140" fill="#fb923c" font-size="12" font-weight="bold">nodePort: 30080</text>
+    <text x="140" y="170" fill="#94a3b8" font-size="10">NodeIP:30080</text>
+
+    <!-- Node box -->
+    <rect x="210" y="30" width="620" height="300" rx="12" fill="#162032" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="230" y="55" fill="#38bdf8" font-size="13" font-weight="bold">Worker Node (IP: 192.168.1.10)</text>
+
+    <!-- Service -->
+    <rect x="240" y="90" width="220" height="140" rx="10" fill="#1e293b" stroke="#fb923c" stroke-width="2"/>
+    <text x="260" y="115" fill="#fb923c" font-size="13" font-weight="bold">Service: my-app-svc</text>
+    <text x="260" y="135" fill="#94a3b8" font-size="11">ClusterIP: 10.96.45.12</text>
+    <rect x="260" y="148" width="180" height="30" rx="4" fill="#0d1117" stroke="#fb923c"/>
+    <text x="270" y="168" fill="#fb923c" font-size="12" font-weight="bold">port: 80</text>
+    <text x="260" y="200" fill="#94a3b8" font-size="10">selector: app=my-app</text>
+    <text x="260" y="218" fill="#94a3b8" font-size="10">Finds pods with this label</text>
+
+    <!-- targetPort arrow -->
+    <line x1="460" y1="163" x2="540" y2="120" stroke="#34d399" stroke-width="3" marker-end="url(#arrowGreen)"/>
+    <line x1="460" y1="163" x2="540" y2="230" stroke="#34d399" stroke-width="3" marker-end="url(#arrowGreen)"/>
+    <text x="468" y="155" fill="#34d399" font-size="12" font-weight="bold">targetPort: 8080</text>
+
+    <!-- Pod 1 -->
+    <rect x="540" y="80" width="200" height="75" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="560" y="105" fill="#34d399" font-size="12" font-weight="bold">Pod 1</text>
+    <rect x="555" y="112" width="170" height="28" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="565" y="131" fill="#e2e8f0" font-size="11">containerPort: <tspan fill="#34d399" font-weight="bold">8080</tspan></text>
+
+    <!-- Pod 2 -->
+    <rect x="540" y="195" width="200" height="75" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="560" y="220" fill="#34d399" font-size="12" font-weight="bold">Pod 2</text>
+    <rect x="555" y="227" width="170" height="28" rx="4" fill="#0d1117" stroke="#475569"/>
+    <text x="565" y="246" fill="#e2e8f0" font-size="11">containerPort: <tspan fill="#34d399" font-weight="bold">8080</tspan></text>
+
+    <!-- Legend -->
+    <rect x="240" y="265" width="540" height="50" rx="6" fill="#0d1117"/>
+    <circle cx="260" cy="290" r="6" fill="#fb923c"/><text x="272" y="295" fill="#94a3b8" font-size="11"><tspan font-weight="bold" fill="#fb923c">port</tspan> = Service listens on this</text>
+    <circle cx="470" cy="290" r="6" fill="#34d399"/><text x="482" y="295" fill="#94a3b8" font-size="11"><tspan font-weight="bold" fill="#34d399">targetPort</tspan> = Pod receives on this</text>
+    <circle cx="690" cy="290" r="6" fill="#a78bfa"/><text x="702" y="295" fill="#94a3b8" font-size="11"><tspan font-weight="bold" fill="#a78bfa">nodePort</tspan> = External access</text>
+  </svg>
+</div>
+
+<table>
+  <tr><th>Port Name</th><th>Who Uses It</th><th>Example</th><th>Think of it as...</th></tr>
+  <tr><td><code style="color:#fb923c">port</code></td><td>The Service itself</td><td>80</td><td>The <strong>front door</strong> of the Service</td></tr>
+  <tr><td><code style="color:#34d399">targetPort</code></td><td>The Pod/Container</td><td>8080</td><td>The <strong>actual room</strong> inside where your app runs</td></tr>
+  <tr><td><code style="color:#a78bfa">nodePort</code></td><td>External world → Node</td><td>30080</td><td>The <strong>street address</strong> anyone can visit</td></tr>
+  <tr><td><code style="color:#38bdf8">containerPort</code></td><td>Deployment spec (docs only)</td><td>8080</td><td>A <strong>label on the door</strong> saying what port the app uses</td></tr>
+</table>
+
+<pre><code><span class="cm"># service.yaml</span>
+<span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Service</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-app-svc</span>
+<span class="kw">spec:</span>
+  <span class="key">type:</span> <span class="str">NodePort</span>          <span class="cm"># ClusterIP | NodePort | LoadBalancer</span>
+  <span class="key">selector:</span>
+    <span class="key">app:</span> <span class="str">my-app</span>           <span class="cm"># ← MUST match Pod labels from Deployment!</span>
+  <span class="key">ports:</span>
+  - <span class="key">port:</span> <span class="val">80</span>              <span class="cm"># ← Service listens on this</span>
+    <span class="key">targetPort:</span> <span class="val">8080</span>      <span class="cm"># ← forwards to container port 8080</span>
+    <span class="key">nodePort:</span> <span class="val">30080</span>       <span class="cm"># ← external access (30000-32767)</span></code></pre>
+
+<div class="tip">
+  <div class="tip-title">The Golden Rule</div>
+  <code>targetPort</code> in the Service MUST equal <code>containerPort</code> in the Deployment. If your app listens on 8080, then <code>targetPort: 8080</code>. The <code>port</code> can be anything — it's just the Service's own port.
+</div>
+
+<h3>Service Types Compared</h3>
+<div class="card-grid">
+  <div class="card">
+    <div class="icon">🔒</div>
+    <h4>ClusterIP (default)</h4>
+    <p>Only accessible inside the cluster. Other pods call it by name: <code>my-app-svc:80</code>. Use for internal services like databases.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🚪</div>
+    <h4>NodePort</h4>
+    <p>Opens a port (30000-32767) on every node. Access from outside: <code>NodeIP:30080</code>. Good for dev/testing.</p>
+  </div>
+  <div class="card">
+    <div class="icon">☁️</div>
+    <h4>LoadBalancer</h4>
+    <p>Creates an external cloud load balancer (AWS ELB, GCP LB). Gets a public IP. The standard for production.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🗺️</div>
+    <h4>ExternalName</h4>
+    <p>Maps to a DNS name (e.g., <code>my-db.rds.amazonaws.com</code>). No proxying — just DNS aliasing.</p>
+  </div>
+</div>
+</section>
+
+<!-- ===================== VOLUMES ===================== -->
+<section id="volumes">
+<h2>5. Volumes & Mounts — Where Data Lives</h2>
+<p>Containers are <span class="highlight">ephemeral</span> — when they restart, all data inside is lost. Volumes solve this by providing persistent storage that survives container restarts.</p>
+
+<div class="diagram">
+  <div class="diagram-title">How Volume Mounting Works</div>
+  <svg viewBox="0 0 750 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:750px;">
+    <!-- Pod -->
+    <rect x="10" y="10" width="480" height="260" rx="12" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <text x="30" y="38" fill="#34d399" font-size="14" font-weight="bold">Pod</text>
+
+    <!-- Container -->
+    <rect x="30" y="55" width="250" height="190" rx="8" fill="#0d1117" stroke="#38bdf8"/>
+    <text x="45" y="80" fill="#38bdf8" font-size="12" font-weight="bold">Container: my-app</text>
+    <text x="45" y="100" fill="#94a3b8" font-size="11">Filesystem:</text>
+    <text x="45" y="120" fill="#e2e8f0" font-size="11">/app      ← app code (from image)</text>
+    <text x="45" y="140" fill="#e2e8f0" font-size="11">/tmp      ← ephemeral</text>
+    <rect x="45" y="150" width="220" height="35" rx="4" fill="#1a3a2a" stroke="#34d399" stroke-dasharray="4"/>
+    <text x="55" y="173" fill="#34d399" font-size="12" font-weight="bold">/data     ← volumeMount! ✓</text>
+    <rect x="45" y="195" width="220" height="35" rx="4" fill="#3a2a1a" stroke="#fb923c" stroke-dasharray="4"/>
+    <text x="55" y="218" fill="#fb923c" font-size="12" font-weight="bold">/config   ← configMap mount</text>
+
+    <!-- Volume definition in Pod -->
+    <rect x="300" y="60" width="170" height="100" rx="8" fill="#162032" stroke="#f472b6"/>
+    <text x="315" y="82" fill="#f472b6" font-size="11" font-weight="bold">volumes: (defined in Pod)</text>
+    <text x="315" y="102" fill="#94a3b8" font-size="10">- name: data-vol</text>
+    <text x="315" y="118" fill="#94a3b8" font-size="10">  persistentVolumeClaim</text>
+    <text x="315" y="134" fill="#94a3b8" font-size="10">- name: config-vol</text>
+    <text x="315" y="150" fill="#94a3b8" font-size="10">  configMap</text>
+
+    <!-- Arrow to PVC -->
+    <line x1="490" y1="100" x2="550" y2="60" stroke="#f472b6" stroke-width="2" marker-end="url(#arrowPink)"/>
+    <line x1="490" y1="100" x2="550" y2="160" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowOrange)"/>
+
+    <!-- PVC -->
+    <rect x="550" y="20" width="180" height="80" rx="8" fill="#1e293b" stroke="#f472b6" stroke-width="2"/>
+    <text x="570" y="45" fill="#f472b6" font-size="12" font-weight="bold">PVC: data-pvc</text>
+    <text x="570" y="65" fill="#94a3b8" font-size="11">Request: 5Gi</text>
+    <text x="570" y="82" fill="#94a3b8" font-size="11">→ Bound to a PV</text>
+
+    <!-- ConfigMap -->
+    <rect x="550" y="130" width="180" height="80" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="2"/>
+    <text x="570" y="155" fill="#fb923c" font-size="12" font-weight="bold">ConfigMap: app-cfg</text>
+    <text x="570" y="175" fill="#94a3b8" font-size="11">app.conf → /config/</text>
+    <text x="570" y="192" fill="#94a3b8" font-size="11">Each key = a file</text>
+
+    <!-- Connection lines from mount to vol -->
+    <path d="M265,167 Q290,167 305,110" stroke="#34d399" stroke-width="1.5" fill="none" stroke-dasharray="4"/>
+    <path d="M265,212 Q290,212 305,140" stroke="#fb923c" stroke-width="1.5" fill="none" stroke-dasharray="4"/>
+  </svg>
+</div>
+
+<h3>Volume Types Cheatsheet</h3>
+<table>
+  <tr><th>Type</th><th>Use Case</th><th>Data Survives Pod Restart?</th><th>Data Survives Pod Delete?</th></tr>
+  <tr><td><code>emptyDir</code></td><td>Temp scratch space, share between containers</td><td>✅ Yes</td><td>❌ No</td></tr>
+  <tr><td><code>hostPath</code></td><td>Mount a directory from the host node</td><td>✅ Yes</td><td>✅ Yes (on same node)</td></tr>
+  <tr><td><code>persistentVolumeClaim</code></td><td>Database storage, stateful apps</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+  <tr><td><code>configMap</code></td><td>Config files injected into Pod</td><td>✅ Yes</td><td>N/A (external)</td></tr>
+  <tr><td><code>secret</code></td><td>Passwords, tokens, certs</td><td>✅ Yes</td><td>N/A (external)</td></tr>
+  <tr><td><code>nfs</code></td><td>Shared file storage across pods</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+</table>
+
+<pre><code><span class="cm"># Pod spec with volume mounts</span>
+<span class="kw">spec:</span>
+  <span class="key">containers:</span>
+  - <span class="key">name:</span> <span class="str">my-app</span>
+    <span class="key">image:</span> <span class="str">my-app:1.0</span>
+    <span class="key">volumeMounts:</span>                    <span class="cm"># ← WHERE to mount inside container</span>
+    - <span class="key">name:</span> <span class="str">data-vol</span>               <span class="cm"># ← references volume by name</span>
+      <span class="key">mountPath:</span> <span class="str">/data</span>             <span class="cm"># ← path inside container</span>
+    - <span class="key">name:</span> <span class="str">config-vol</span>
+      <span class="key">mountPath:</span> <span class="str">/config</span>
+      <span class="key">readOnly:</span> <span class="val">true</span>
+  <span class="key">volumes:</span>                            <span class="cm"># ← WHAT to mount (defined at Pod level)</span>
+  - <span class="key">name:</span> <span class="str">data-vol</span>
+    <span class="key">persistentVolumeClaim:</span>
+      <span class="key">claimName:</span> <span class="str">data-pvc</span>
+  - <span class="key">name:</span> <span class="str">config-vol</span>
+    <span class="key">configMap:</span>
+      <span class="key">name:</span> <span class="str">app-config</span></code></pre>
+
+<div class="tip">
+  <div class="tip-title">Two-Step Mental Model</div>
+  Always think: <strong>1) Define the volume</strong> (in <code>spec.volumes</code>) → <strong>2) Mount it</strong> (in <code>spec.containers[].volumeMounts</code>). The <code>name</code> field connects them. Like plugging a USB drive (volume) into a specific folder (mountPath).
+</div>
+</section>
+
+<!-- ===================== PV & PVC ===================== -->
+<section id="pv-pvc">
+<h2>6. PersistentVolume (PV) & PersistentVolumeClaim (PVC)</h2>
+
+<div class="diagram">
+  <div class="diagram-title">PV / PVC Relationship — Like a Hotel Reservation</div>
+  <svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <!-- Admin -->
+    <rect x="10" y="20" width="100" height="50" rx="8" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="25" y="50" fill="#a78bfa" font-size="12">👤 Admin</text>
+    <line x1="110" y1="45" x2="170" y2="45" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+    <text x="115" y="38" fill="#94a3b8" font-size="10">creates</text>
+
+    <!-- PV -->
+    <rect x="170" y="10" width="200" height="80" rx="10" fill="#1e293b" stroke="#f472b6" stroke-width="2"/>
+    <text x="190" y="35" fill="#f472b6" font-size="13" font-weight="bold">PersistentVolume</text>
+    <text x="190" y="55" fill="#94a3b8" font-size="11">capacity: 10Gi</text>
+    <text x="190" y="72" fill="#94a3b8" font-size="11">hostPath: /mnt/data</text>
+
+    <!-- Binding arrow -->
+    <line x1="370" y1="50" x2="430" y2="50" stroke="#34d399" stroke-width="3"/>
+    <rect x="385" y="35" width="55" height="22" rx="4" fill="#1a3a2a"/>
+    <text x="392" y="51" fill="#34d399" font-size="11" font-weight="bold">BIND</text>
+    <line x1="430" y1="50" x2="445" y2="50" stroke="#34d399" stroke-width="3" marker-end="url(#arrowGreen)"/>
+
+    <!-- PVC -->
+    <rect x="445" y="10" width="200" height="80" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <text x="465" y="35" fill="#38bdf8" font-size="13" font-weight="bold">PersistentVolumeClaim</text>
+    <text x="465" y="55" fill="#94a3b8" font-size="11">request: 5Gi</text>
+    <text x="465" y="72" fill="#94a3b8" font-size="11">accessModes: RWO</text>
+
+    <!-- Dev -->
+    <rect x="660" y="20" width="100" height="50" rx="8" fill="#2d2b55" stroke="#38bdf8"/>
+    <text x="680" y="50" fill="#38bdf8" font-size="12">👤 Dev</text>
+    <line x1="660" y1="45" x2="645" y2="45" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+    <text x="650" y="38" fill="#94a3b8" font-size="10">creates</text>
+
+    <!-- Pod -->
+    <rect x="445" y="110" width="200" height="60" rx="8" fill="#1e293b" stroke="#34d399"/>
+    <text x="465" y="135" fill="#34d399" font-size="12" font-weight="bold">Pod</text>
+    <text x="465" y="155" fill="#94a3b8" font-size="11">claimName: my-pvc</text>
+    <line x1="545" y1="110" x2="545" y2="90" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+    <text x="555" y="105" fill="#94a3b8" font-size="10">uses</text>
+
+    <!-- Analogy -->
+    <text x="10" y="130" fill="#94a3b8" font-size="12" font-style="italic">Think: PV = Hotel Room,  PVC = Reservation,  Pod = Guest</text>
+    <text x="10" y="150" fill="#94a3b8" font-size="11">The admin provisions rooms, the dev books one, the pod moves in.</text>
+  </svg>
+</div>
+
+<pre><code><span class="cm"># pv.yaml — created by admin or dynamically by StorageClass</span>
+<span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">PersistentVolume</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-pv</span>
+<span class="kw">spec:</span>
+  <span class="key">capacity:</span>
+    <span class="key">storage:</span> <span class="val">10Gi</span>
+  <span class="key">accessModes:</span>
+    - <span class="str">ReadWriteOnce</span>      <span class="cm"># RWO=one node, ROX=many read, RWX=many read/write</span>
+  <span class="key">hostPath:</span>
+    <span class="key">path:</span> <span class="str">/mnt/data</span>
+---
+<span class="cm"># pvc.yaml — created by developer</span>
+<span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">PersistentVolumeClaim</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-pvc</span>
+<span class="kw">spec:</span>
+  <span class="key">accessModes:</span>
+    - <span class="str">ReadWriteOnce</span>
+  <span class="key">resources:</span>
+    <span class="key">requests:</span>
+      <span class="key">storage:</span> <span class="val">5Gi</span>       <span class="cm"># ← K8s finds a PV ≥ 5Gi and binds it</span></code></pre>
+</section>
+
+<!-- ===================== STORAGE CLASS ===================== -->
+<section id="storage-classes">
+<h2>7. StorageClass — Automatic Volume Provisioning</h2>
+<p>Instead of creating PVs manually, a <span class="highlight">StorageClass</span> tells Kubernetes how to <em>automatically</em> create them when a PVC is made. This is what you'll use in production.</p>
+
+<div class="flow">
+  <div class="flow-step" style="border-color:var(--accent2)">Dev creates PVC<br><small>with storageClassName</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent)">StorageClass<br><small>provisioner: aws-ebs</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent3)">PV auto-created<br><small>EBS volume made</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent4)">PVC bound to PV<br><small>Pod can use it</small></div>
+</div>
+</section>
+
+<!-- ===================== CONFIGMAP ===================== -->
+<section id="configmap">
+<h2>8. ConfigMap — Non-Secret Configuration</h2>
+<p>ConfigMaps store configuration data as key-value pairs. You can inject them as environment variables or as files mounted into pods.</p>
+
+<div class="vs-grid">
+  <div class="vs-box">
+    <h4 style="color:var(--accent)">As Environment Variables</h4>
+    <pre><code><span class="key">env:</span>
+- <span class="key">name:</span> <span class="str">DB_HOST</span>
+  <span class="key">valueFrom:</span>
+    <span class="key">configMapKeyRef:</span>
+      <span class="key">name:</span> <span class="str">app-config</span>
+      <span class="key">key:</span> <span class="str">database_host</span></code></pre>
+  </div>
+  <div class="vs-box">
+    <h4 style="color:var(--accent3)">As Mounted Files</h4>
+    <pre><code><span class="key">volumeMounts:</span>
+- <span class="key">name:</span> <span class="str">cfg</span>
+  <span class="key">mountPath:</span> <span class="str">/etc/config</span>
+<span class="key">volumes:</span>
+- <span class="key">name:</span> <span class="str">cfg</span>
+  <span class="key">configMap:</span>
+    <span class="key">name:</span> <span class="str">app-config</span>
+<span class="cm"># Each key becomes a file!</span></code></pre>
+  </div>
+</div>
+
+<pre><code><span class="cm"># Create ConfigMap from command line</span>
+kubectl create configmap app-config \
+  --from-literal=database_host=postgres-svc \
+  --from-literal=database_port=5432 \
+  --from-file=nginx.conf=./nginx.conf</code></pre>
+</section>
+
+<!-- ===================== SECRETS ===================== -->
+<section id="secrets">
+<h2>9. Secrets — Sensitive Data</h2>
+<p>Secrets are like ConfigMaps but for sensitive data (passwords, API keys, TLS certificates). They are <span class="highlight">base64 encoded</span> (not encrypted by default!).</p>
+
+<div class="warn-box">
+  <div class="warn-title">Security Warning</div>
+  Base64 is NOT encryption! Anyone with cluster access can decode secrets. In production, enable <strong>encryption at rest</strong> and use tools like <strong>Sealed Secrets</strong>, <strong>Vault</strong>, or <strong>External Secrets Operator</strong>.
+</div>
+
+<pre><code><span class="cm"># Create a secret</span>
+kubectl create secret generic db-creds \
+  --from-literal=username=admin \
+  --from-literal=password=supersecret123
+
+<span class="cm"># Use in a Pod</span>
+<span class="key">env:</span>
+- <span class="key">name:</span> <span class="str">DB_PASSWORD</span>
+  <span class="key">valueFrom:</span>
+    <span class="key">secretKeyRef:</span>
+      <span class="key">name:</span> <span class="str">db-creds</span>
+      <span class="key">key:</span> <span class="str">password</span>
+
+<span class="cm"># Or mount as files</span>
+<span class="key">volumeMounts:</span>
+- <span class="key">name:</span> <span class="str">secret-vol</span>
+  <span class="key">mountPath:</span> <span class="str">/etc/secrets</span>
+  <span class="key">readOnly:</span> <span class="val">true</span>
+<span class="key">volumes:</span>
+- <span class="key">name:</span> <span class="str">secret-vol</span>
+  <span class="key">secret:</span>
+    <span class="key">secretName:</span> <span class="str">db-creds</span></code></pre>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="icon">🔑</div>
+    <h4>Opaque (generic)</h4>
+    <p>Default type. Store any key-value pairs like usernames, passwords, API keys.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🔐</div>
+    <h4>kubernetes.io/tls</h4>
+    <p>TLS certificates. Requires <code>tls.crt</code> and <code>tls.key</code> fields.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🐳</div>
+    <h4>kubernetes.io/dockerconfigjson</h4>
+    <p>Docker registry credentials for pulling private images.</p>
+  </div>
+</div>
+</section>
+
+<!-- ===================== NETWORKING ===================== -->
+<section id="networking">
+<h2>10. Networking — How Pods Communicate</h2>
+
+<div class="diagram">
+  <div class="diagram-title">Pod-to-Pod Communication Paths</div>
+  <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <!-- Same Pod -->
+    <rect x="10" y="10" width="240" height="130" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <text x="30" y="35" fill="#34d399" font-size="12" font-weight="bold">Same Pod</text>
+    <rect x="25" y="48" width="90" height="35" rx="5" fill="#0d1117" stroke="#38bdf8"/>
+    <text x="35" y="70" fill="#38bdf8" font-size="11">App :8080</text>
+    <rect x="140" y="48" width="95" height="35" rx="5" fill="#0d1117" stroke="#a78bfa"/>
+    <text x="150" y="70" fill="#a78bfa" font-size="11">Sidecar :9090</text>
+    <line x1="115" y1="65" x2="140" y2="65" stroke="#fb923c" stroke-width="2" stroke-dasharray="4"/>
+    <text x="30" y="108" fill="#fb923c" font-size="11" font-weight="bold">localhost:9090</text>
+    <text x="30" y="125" fill="#94a3b8" font-size="10">Containers share network namespace</text>
+
+    <!-- Same Cluster -->
+    <rect x="280" y="10" width="240" height="130" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <text x="300" y="35" fill="#38bdf8" font-size="12" font-weight="bold">Same Namespace</text>
+    <rect x="295" y="48" width="90" height="35" rx="5" fill="#0d1117" stroke="#34d399"/>
+    <text x="305" y="70" fill="#34d399" font-size="11">Pod A</text>
+    <rect x="415" y="48" width="90" height="35" rx="5" fill="#0d1117" stroke="#34d399"/>
+    <text x="425" y="70" fill="#34d399" font-size="11">Pod B</text>
+    <line x1="385" y1="65" x2="415" y2="65" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowOrange)"/>
+    <text x="300" y="108" fill="#fb923c" font-size="11" font-weight="bold">svc-b:80</text>
+    <text x="300" y="125" fill="#94a3b8" font-size="10">Use Service name as hostname</text>
+
+    <!-- Cross Namespace -->
+    <rect x="550" y="10" width="240" height="130" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="2"/>
+    <text x="570" y="35" fill="#a78bfa" font-size="12" font-weight="bold">Cross Namespace</text>
+    <rect x="565" y="48" width="100" height="35" rx="5" fill="#0d1117" stroke="#34d399"/>
+    <text x="575" y="70" fill="#34d399" font-size="11">ns: frontend</text>
+    <rect x="685" y="48" width="90" height="35" rx="5" fill="#0d1117" stroke="#34d399"/>
+    <text x="695" y="70" fill="#34d399" font-size="11">ns: backend</text>
+    <line x1="665" y1="65" x2="685" y2="65" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowOrange)"/>
+    <text x="570" y="108" fill="#fb923c" font-size="10" font-weight="bold">svc-b.backend.svc.cluster.local</text>
+    <text x="570" y="125" fill="#94a3b8" font-size="10">Full DNS name with namespace</text>
+
+    <!-- Summary -->
+    <rect x="10" y="160" width="780" height="130" rx="10" fill="#0d1117" stroke="#475569"/>
+    <text x="30" y="185" fill="#38bdf8" font-size="13" font-weight="bold">DNS Resolution Summary</text>
+    <text x="30" y="210" fill="#e2e8f0" font-size="12">Same namespace:   <tspan fill="#fb923c">my-service</tspan>                                    → ClusterIP</text>
+    <text x="30" y="232" fill="#e2e8f0" font-size="12">Cross namespace:  <tspan fill="#fb923c">my-service.other-ns</tspan>                           → ClusterIP</text>
+    <text x="30" y="254" fill="#e2e8f0" font-size="12">Full FQDN:        <tspan fill="#fb923c">my-service.other-ns.svc.cluster.local</tspan>      → ClusterIP</text>
+    <text x="30" y="278" fill="#94a3b8" font-size="11">All pods can reach any service in any namespace (unless NetworkPolicy blocks it)</text>
+  </svg>
+</div>
+</section>
+
+<!-- ===================== INGRESS ===================== -->
+<section id="ingress">
+<h2>11. Ingress — Exposing to the World</h2>
+<p>Ingress is like a <span class="highlight">smart receptionist</span> that routes external HTTP/HTTPS traffic to the right Service based on the URL path or hostname.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Ingress Routing</div>
+  <svg viewBox="0 0 750 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:750px;">
+    <rect x="10" y="80" width="110" height="50" rx="8" fill="#2d2b55" stroke="#a78bfa" stroke-width="2"/>
+    <text x="25" y="110" fill="#a78bfa" font-size="12">🌐 Internet</text>
+
+    <line x1="120" y1="105" x2="195" y2="105" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+    <rect x="195" y="20" width="250" height="180" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="2"/>
+    <text x="215" y="48" fill="#a78bfa" font-size="13" font-weight="bold">Ingress Controller</text>
+    <text x="215" y="65" fill="#94a3b8" font-size="10">(nginx, traefik, etc.)</text>
+
+    <text x="215" y="95" fill="#e2e8f0" font-size="11">/api/*    →</text>
+    <text x="215" y="120" fill="#e2e8f0" font-size="11">/app/*    →</text>
+    <text x="215" y="145" fill="#e2e8f0" font-size="11">/static/* →</text>
+    <text x="215" y="175" fill="#94a3b8" font-size="10">TLS termination: *.example.com</text>
+
+    <line x1="445" y1="90" x2="510" y2="50" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+    <line x1="445" y1="115" x2="510" y2="110" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+    <line x1="445" y1="140" x2="510" y2="170" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+    <rect x="510" y="30" width="140" height="40" rx="6" fill="#1e293b" stroke="#fb923c"/>
+    <text x="525" y="55" fill="#fb923c" font-size="11">api-svc:8080</text>
+    <rect x="510" y="90" width="140" height="40" rx="6" fill="#1e293b" stroke="#34d399"/>
+    <text x="525" y="115" fill="#34d399" font-size="11">app-svc:3000</text>
+    <rect x="510" y="150" width="140" height="40" rx="6" fill="#1e293b" stroke="#38bdf8"/>
+    <text x="525" y="175" fill="#38bdf8" font-size="11">static-svc:80</text>
+
+    <line x1="650" y1="50" x2="700" y2="50" stroke="#fb923c" stroke-width="1" marker-end="url(#arrowOrange)"/>
+    <line x1="650" y1="110" x2="700" y2="110" stroke="#34d399" stroke-width="1" marker-end="url(#arrowGreen)"/>
+    <line x1="650" y1="170" x2="700" y2="170" stroke="#38bdf8" stroke-width="1" marker-end="url(#arrowBlue)"/>
+    <text x="705" y="55" fill="#94a3b8" font-size="10">Pods</text>
+    <text x="705" y="115" fill="#94a3b8" font-size="10">Pods</text>
+    <text x="705" y="175" fill="#94a3b8" font-size="10">Pods</text>
+  </svg>
+</div>
+
+<pre><code><span class="kw">apiVersion:</span> <span class="str">networking.k8s.io/v1</span>
+<span class="kw">kind:</span> <span class="str">Ingress</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-ingress</span>
+  <span class="key">annotations:</span>
+    <span class="key">nginx.ingress.kubernetes.io/rewrite-target:</span> <span class="str">/</span>
+<span class="kw">spec:</span>
+  <span class="key">tls:</span>
+  - <span class="key">hosts:</span> [<span class="str">app.example.com</span>]
+    <span class="key">secretName:</span> <span class="str">tls-secret</span>
+  <span class="key">rules:</span>
+  - <span class="key">host:</span> <span class="str">app.example.com</span>
+    <span class="key">http:</span>
+      <span class="key">paths:</span>
+      - <span class="key">path:</span> <span class="str">/api</span>
+        <span class="key">pathType:</span> <span class="str">Prefix</span>
+        <span class="key">backend:</span>
+          <span class="key">service:</span>
+            <span class="key">name:</span> <span class="str">api-svc</span>
+            <span class="key">port:</span>
+              <span class="key">number:</span> <span class="val">8080</span></code></pre>
+</section>
+
+<!-- ===================== DNS ===================== -->
+<section id="dns">
+<h2>12. DNS in Kubernetes</h2>
+<p>Every Service automatically gets a DNS entry. This is how pods find each other — by name, not IP.</p>
+
+<div class="diagram">
+  <div class="diagram-title">Kubernetes DNS Hierarchy</div>
+  <pre style="background:transparent;border:none;color:var(--text);font-size:14px;line-height:2;">
+<span style="color:var(--accent3)">my-service</span>                                  ← same namespace (shortest)
+<span style="color:var(--accent)">my-service</span>.<span style="color:var(--accent4)">my-namespace</span>                      ← cross-namespace
+<span style="color:var(--accent)">my-service</span>.<span style="color:var(--accent4)">my-namespace</span>.<span style="color:var(--accent2)">svc</span>                  ← with service type
+<span style="color:var(--accent)">my-service</span>.<span style="color:var(--accent4)">my-namespace</span>.<span style="color:var(--accent2)">svc</span>.<span style="color:var(--accent5)">cluster.local</span>    ← fully qualified (FQDN)
+  </pre>
+</div>
+</section>
+
+<!-- ===================== HELM ===================== -->
+<section id="helm">
+<h2>13. Helm — Package Manager for Kubernetes</h2>
+<p>Helm is the <span class="highlight">apt/npm/brew of Kubernetes</span>. Instead of managing 10 YAML files, you manage one Helm chart with configurable values.</p>
+
+<div class="flow">
+  <div class="flow-step" style="border-color:var(--accent)">Chart<br><small>Templates + values.yaml</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent2)">helm install<br><small>renders templates</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent3)">Release<br><small>Running instance</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="border-color:var(--accent4)">helm upgrade<br><small>Update values</small></div>
+</div>
+
+<pre><code><span class="cm"># Essential Helm commands</span>
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm search repo nginx
+helm install my-nginx bitnami/nginx -f my-values.yaml
+helm upgrade my-nginx bitnami/nginx -f my-values.yaml
+helm rollback my-nginx 1          <span class="cm"># rollback to revision 1</span>
+helm list                          <span class="cm"># see all releases</span>
+helm uninstall my-nginx</code></pre>
+</section>
+
+<!-- ===================== CI/CD ===================== -->
+<section id="ci-cd">
+<h2>14. CI/CD Pipeline for Kubernetes</h2>
+
+<div class="diagram">
+  <div class="diagram-title">Typical CI/CD Flow</div>
+  <svg viewBox="0 0 850 120" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:850px;">
+    <rect x="5" y="30" width="100" height="55" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="15" y="55" fill="#a78bfa" font-size="11" font-weight="bold">Git Push</text>
+    <text x="15" y="72" fill="#94a3b8" font-size="10">GitHub/GitLab</text>
+
+    <line x1="105" y1="57" x2="140" y2="57" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+    <rect x="140" y="30" width="120" height="55" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="150" y="55" fill="#38bdf8" font-size="11" font-weight="bold">Build & Test</text>
+    <text x="150" y="72" fill="#94a3b8" font-size="10">GitHub Actions</text>
+
+    <line x1="260" y1="57" x2="295" y2="57" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+    <rect x="295" y="30" width="120" height="55" rx="8" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+    <text x="305" y="55" fill="#34d399" font-size="11" font-weight="bold">Docker Build</text>
+    <text x="305" y="72" fill="#94a3b8" font-size="10">Push to Registry</text>
+
+    <line x1="415" y1="57" x2="450" y2="57" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+    <rect x="450" y="30" width="120" height="55" rx="8" fill="#1e293b" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="460" y="55" fill="#fb923c" font-size="11" font-weight="bold">Update YAML</text>
+    <text x="460" y="72" fill="#94a3b8" font-size="10">New image tag</text>
+
+    <line x1="570" y1="57" x2="605" y2="57" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowOrange)"/>
+
+    <rect x="605" y="30" width="110" height="55" rx="8" fill="#1e293b" stroke="#f472b6" stroke-width="1.5"/>
+    <text x="615" y="55" fill="#f472b6" font-size="11" font-weight="bold">Deploy</text>
+    <text x="615" y="72" fill="#94a3b8" font-size="10">ArgoCD / kubectl</text>
+
+    <line x1="715" y1="57" x2="745" y2="57" stroke="#f472b6" stroke-width="2" marker-end="url(#arrowPink)"/>
+
+    <rect x="745" y="30" width="95" height="55" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="755" y="55" fill="#a78bfa" font-size="11" font-weight="bold">Cluster</text>
+    <text x="755" y="72" fill="#94a3b8" font-size="10">K8s ☸</text>
+  </svg>
+</div>
+</section>
+
+<!-- ===================== GITOPS ===================== -->
+<section id="gitops">
+<h2>15. GitOps & ArgoCD — The Modern Way</h2>
+<p>GitOps means <span class="highlight">Git is the single source of truth</span>. You push YAML changes to Git, and ArgoCD automatically syncs them to your cluster. No more <code>kubectl apply</code> from your laptop!</p>
+
+<div class="card-grid">
+  <div class="card pulse">
+    <div class="icon">🔄</div>
+    <h4>ArgoCD</h4>
+    <p>The most popular GitOps tool. Watches your Git repo and auto-syncs changes to K8s. Provides a beautiful UI to see deployment status.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🔀</div>
+    <h4>Flux</h4>
+    <p>CNCF GitOps toolkit. Lightweight alternative to ArgoCD. Good for teams who prefer CLI over UI.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🏗️</div>
+    <h4>Kustomize</h4>
+    <p>Built into kubectl. Lets you customize YAML without templates. Great for managing different environments (dev/staging/prod).</p>
+  </div>
+</div>
+</section>
+
+<!-- ===================== MONITORING ===================== -->
+<section id="monitoring">
+<h2>16. Monitoring & Observability</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="icon">📊</div>
+    <h4>Prometheus + Grafana</h4>
+    <p>Industry standard. Prometheus scrapes metrics, Grafana visualizes them. Use <code>kube-prometheus-stack</code> Helm chart for easy setup.</p>
+  </div>
+  <div class="card">
+    <div class="icon">📝</div>
+    <h4>EFK Stack</h4>
+    <p>Elasticsearch + Fluentd + Kibana. Collects and searches logs from all pods. Alternative: Loki + Grafana (lighter).</p>
+  </div>
+  <div class="card">
+    <div class="icon">🔍</div>
+    <h4>Lens IDE</h4>
+    <p>Free desktop app — a visual K8s dashboard. See pods, logs, metrics all in one place. Great for beginners.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🩺</div>
+    <h4>Health Probes</h4>
+    <p>Liveness, Readiness, Startup probes. K8s uses these to know if your app is healthy and ready to receive traffic.</p>
+  </div>
+</div>
+
+<pre><code><span class="cm"># Health Probes — Add to every Deployment!</span>
+<span class="key">containers:</span>
+- <span class="key">name:</span> <span class="str">my-app</span>
+  <span class="key">livenessProbe:</span>       <span class="cm"># ← Is the app alive? Restart if not.</span>
+    <span class="key">httpGet:</span>
+      <span class="key">path:</span> <span class="str">/healthz</span>
+      <span class="key">port:</span> <span class="val">8080</span>
+    <span class="key">initialDelaySeconds:</span> <span class="val">15</span>
+    <span class="key">periodSeconds:</span> <span class="val">10</span>
+  <span class="key">readinessProbe:</span>      <span class="cm"># ← Is it ready for traffic? Remove from LB if not.</span>
+    <span class="key">httpGet:</span>
+      <span class="key">path:</span> <span class="str">/ready</span>
+      <span class="key">port:</span> <span class="val">8080</span>
+    <span class="key">initialDelaySeconds:</span> <span class="val">5</span>
+    <span class="key">periodSeconds:</span> <span class="val">5</span></code></pre>
+</section>
+
+<!-- ===================== SECURITY ===================== -->
+<section id="security">
+<h2>17. Security Best Practices</h2>
+
+<ul class="checklist">
+  <li>Use <strong>Namespaces</strong> to isolate teams/environments</li>
+  <li>Apply <strong>NetworkPolicies</strong> to restrict pod-to-pod traffic (zero-trust)</li>
+  <li>Use <strong>RBAC</strong> (Role-Based Access Control) — never give cluster-admin to apps</li>
+  <li>Run containers as <strong>non-root</strong> users</li>
+  <li>Set <strong>resource limits</strong> (CPU/memory) on every container</li>
+  <li>Use <strong>Pod Security Standards</strong> (restricted, baseline, privileged)</li>
+  <li>Scan images with <strong>Trivy</strong> or <strong>Snyk</strong> in your CI pipeline</li>
+  <li>Encrypt Secrets at rest (<code>EncryptionConfiguration</code>)</li>
+  <li>Use <strong>Service Mesh</strong> (Istio/Linkerd) for mTLS between pods</li>
+  <li>Keep K8s version updated (security patches)</li>
+</ul>
+
+<pre><code><span class="cm"># Resource limits — ALWAYS set these!</span>
+<span class="key">containers:</span>
+- <span class="key">name:</span> <span class="str">my-app</span>
+  <span class="key">resources:</span>
+    <span class="key">requests:</span>           <span class="cm"># ← Minimum guaranteed</span>
+      <span class="key">cpu:</span> <span class="str">"100m"</span>      <span class="cm"># 0.1 CPU core</span>
+      <span class="key">memory:</span> <span class="str">"128Mi"</span>
+    <span class="key">limits:</span>             <span class="cm"># ← Maximum allowed</span>
+      <span class="key">cpu:</span> <span class="str">"500m"</span>
+      <span class="key">memory:</span> <span class="str">"256Mi"</span>  <span class="cm"># OOMKilled if exceeded!</span></code></pre>
+</section>
+
+<!-- ===================== TOOLS ===================== -->
+<section id="tools">
+<h2>18. Essential Tools Beyond Kubernetes</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="icon">🐳</div>
+    <h4>Docker / Podman</h4>
+    <p>Build container images. Podman is a rootless alternative. Learn Dockerfile best practices (multi-stage builds, .dockerignore).</p>
+  </div>
+  <div class="card">
+    <div class="icon">🏗️</div>
+    <h4>Terraform / OpenTofu</h4>
+    <p>Infrastructure as Code. Provision cloud resources (VPCs, EKS clusters, databases). The foundation under Kubernetes.</p>
+  </div>
+  <div class="card">
+    <div class="icon">⚡</div>
+    <h4>k3s / k3d / kind</h4>
+    <p>Lightweight K8s for local dev. k3s runs on a Raspberry Pi. kind runs K8s in Docker. Perfect for learning.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🔒</div>
+    <h4>HashiCorp Vault</h4>
+    <p>Production-grade secrets management. Dynamic secrets, encryption as a service, PKI. Way better than K8s Secrets alone.</p>
+  </div>
+  <div class="card">
+    <div class="icon">🌐</div>
+    <h4>Istio / Linkerd</h4>
+    <p>Service Mesh: automatic mTLS, traffic management, observability. Linkerd is simpler; Istio is more powerful.</p>
+  </div>
+  <div class="card">
+    <div class="icon">📦</div>
+    <h4>Harbor / ECR / GCR</h4>
+    <p>Container registries. Harbor is self-hosted with vulnerability scanning. ECR/GCR are cloud-managed.</p>
+  </div>
+</div>
+</section>
+
+<!-- ===================== LEARNING TIPS ===================== -->
+<section id="learning">
+<h2>19. Speed-Learning Tips for Busy Professionals</h2>
+
+<div class="card-grid">
+  <div class="card" style="border-color:var(--accent)">
+    <div class="icon">🎯</div>
+    <h4>Tip 1: Learn by Breaking</h4>
+    <p>Create a cluster with <code>kind</code>, deploy something, then deliberately break it. Delete a pod, misconfigure a port, use wrong labels. Debugging teaches faster than reading.</p>
+  </div>
+  <div class="card" style="border-color:var(--accent2)">
+    <div class="icon">📋</div>
+    <h4>Tip 2: The 3-YAML Rule</h4>
+    <p>Most apps need just 3 files: <strong>Deployment</strong>, <strong>Service</strong>, <strong>Ingress</strong>. Master these first. Everything else is optional until you need it.</p>
+  </div>
+  <div class="card" style="border-color:var(--accent3)">
+    <div class="icon">🔧</div>
+    <h4>Tip 3: kubectl explain</h4>
+    <p><code>kubectl explain deployment.spec.template</code> — built-in docs for any field. Better than googling. Use <code>--recursive</code> to see all fields.</p>
+  </div>
+  <div class="card" style="border-color:var(--accent4)">
+    <div class="icon">⚡</div>
+    <h4>Tip 4: Aliases Save Hours</h4>
+    <p>Add to your .bashrc: <code>alias k=kubectl</code>, <code>alias kgp='kubectl get pods'</code>, <code>alias kaf='kubectl apply -f'</code>. Speed compounds.</p>
+  </div>
+  <div class="card" style="border-color:var(--accent5)">
+    <div class="icon">🧪</div>
+    <h4>Tip 5: CKA Certification Path</h4>
+    <p>Study for CKA even if you don't take it. The curriculum covers exactly what you need. Use <strong>killer.sh</strong> for practice.</p>
+  </div>
+  <div class="card" style="border-color:var(--accent)">
+    <div class="icon">📺</div>
+    <h4>Tip 6: Visual Learner Resources</h4>
+    <p><strong>Nana TechWorld</strong> (YouTube) — best visual K8s tutorials. <strong>KodeKloud</strong> — hands-on labs. <strong>Play with Kubernetes</strong> — free browser-based clusters.</p>
+  </div>
+</div>
+
+<div class="tip">
+  <div class="tip-title">Your 30-Day Learning Plan</div>
+  <strong>Week 1:</strong> Pod, Deployment, Service, Labels/Selectors (the connection glue!)
+  <br><strong>Week 2:</strong> ConfigMaps, Secrets, Volumes, PVC
+  <br><strong>Week 3:</strong> Ingress, Namespaces, RBAC, Health Probes
+  <br><strong>Week 4:</strong> Helm, CI/CD, ArgoCD, Monitoring stack
+  <br><br>Spend 30 min/day on hands-on practice. That's enough when combined with work experience.
+</div>
+</section>
+
+<!-- ===================== CHEATSHEET ===================== -->
+<section id="cheatsheet">
+<h2>20. kubectl Cheatsheet</h2>
+
+<pre><code><span class="cm"># ━━━ GET INFO ━━━</span>
+kubectl get pods                         <span class="cm"># list pods in current namespace</span>
+kubectl get pods -A                      <span class="cm"># ALL namespaces</span>
+kubectl get pods -o wide                 <span class="cm"># show IPs and nodes</span>
+kubectl get svc,deploy,ingress           <span class="cm"># multiple resources</span>
+kubectl describe pod my-pod              <span class="cm"># detailed info + events</span>
+
+<span class="cm"># ━━━ DEBUGGING ━━━</span>
+kubectl logs my-pod                      <span class="cm"># view logs</span>
+kubectl logs my-pod -c sidecar           <span class="cm"># specific container</span>
+kubectl logs my-pod --previous           <span class="cm"># logs from crashed container</span>
+kubectl exec -it my-pod -- /bin/sh       <span class="cm"># shell into pod</span>
+kubectl port-forward svc/my-svc 8080:80  <span class="cm"># local access to service</span>
+
+<span class="cm"># ━━━ CREATING / UPDATING ━━━</span>
+kubectl apply -f deployment.yaml         <span class="cm"># create or update</span>
+kubectl delete -f deployment.yaml        <span class="cm"># delete resources</span>
+kubectl scale deploy my-app --replicas=5 <span class="cm"># scale up/down</span>
+kubectl rollout restart deploy my-app    <span class="cm"># restart all pods</span>
+kubectl rollout undo deploy my-app       <span class="cm"># rollback to previous version</span>
+
+<span class="cm"># ━━━ DRY RUN (generate YAML) ━━━</span>
+kubectl create deploy my-app --image=nginx --dry-run=client -o yaml > deploy.yaml
+kubectl expose deploy my-app --port=80 --dry-run=client -o yaml > svc.yaml
+
+<span class="cm"># ━━━ CONTEXT & NAMESPACE ━━━</span>
+kubectl config get-contexts              <span class="cm"># list clusters</span>
+kubectl config use-context my-cluster    <span class="cm"># switch cluster</span>
+kubectl config set-context --current --namespace=dev  <span class="cm"># change default ns</span></code></pre>
+
+<div class="tip">
+  <div class="tip-title">Pro Tip: kubectx + kubens</div>
+  Install <code>kubectx</code> and <code>kubens</code> for instant context and namespace switching. Way faster than typing long kubectl config commands.
+</div>
+</section>
+
+<!-- ===================== COMPLETE EXAMPLE ===================== -->
+<section id="example">
+<h2>Bonus: Complete Working Example</h2>
+<p>Here's a full example showing a web app with a database — connecting all the concepts together.</p>
+
+<div class="tabs">
+  <div class="tab-btn active" onclick="showTab('tab-deploy')">deployment.yaml</div>
+  <div class="tab-btn" onclick="showTab('tab-svc')">service.yaml</div>
+  <div class="tab-btn" onclick="showTab('tab-secret')">secret.yaml</div>
+  <div class="tab-btn" onclick="showTab('tab-pvc')">pvc.yaml</div>
+  <div class="tab-btn" onclick="showTab('tab-ingress')">ingress.yaml</div>
+</div>
+
+<div class="tab-content active" id="tab-deploy">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">apps/v1</span>
+<span class="kw">kind:</span> <span class="str">Deployment</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">web-app</span>
+<span class="kw">spec:</span>
+  <span class="key">replicas:</span> <span class="val">3</span>
+  <span class="key">selector:</span>
+    <span class="key">matchLabels:</span>
+      <span class="key">app:</span> <span class="str">web-app</span>
+  <span class="key">template:</span>
+    <span class="key">metadata:</span>
+      <span class="key">labels:</span>
+        <span class="key">app:</span> <span class="str">web-app</span>          <span class="cm"># ← Service finds pods by this label</span>
+    <span class="key">spec:</span>
+      <span class="key">containers:</span>
+      - <span class="key">name:</span> <span class="str">web</span>
+        <span class="key">image:</span> <span class="str">my-web-app:2.0</span>
+        <span class="key">ports:</span>
+        - <span class="key">containerPort:</span> <span class="val">3000</span>    <span class="cm"># ← app listens here</span>
+        <span class="key">env:</span>
+        - <span class="key">name:</span> <span class="str">DB_HOST</span>
+          <span class="key">value:</span> <span class="str">postgres-svc</span>    <span class="cm"># ← Service DNS name!</span>
+        - <span class="key">name:</span> <span class="str">DB_PASSWORD</span>
+          <span class="key">valueFrom:</span>
+            <span class="key">secretKeyRef:</span>
+              <span class="key">name:</span> <span class="str">db-creds</span>
+              <span class="key">key:</span> <span class="str">password</span>
+        <span class="key">resources:</span>
+          <span class="key">requests:</span>
+            <span class="key">cpu:</span> <span class="str">"100m"</span>
+            <span class="key">memory:</span> <span class="str">"128Mi"</span>
+          <span class="key">limits:</span>
+            <span class="key">cpu:</span> <span class="str">"500m"</span>
+            <span class="key">memory:</span> <span class="str">"256Mi"</span>
+        <span class="key">livenessProbe:</span>
+          <span class="key">httpGet:</span>
+            <span class="key">path:</span> <span class="str">/healthz</span>
+            <span class="key">port:</span> <span class="val">3000</span>
+        <span class="key">readinessProbe:</span>
+          <span class="key">httpGet:</span>
+            <span class="key">path:</span> <span class="str">/ready</span>
+            <span class="key">port:</span> <span class="val">3000</span></code></pre>
+</div>
+
+<div class="tab-content" id="tab-svc">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Service</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">web-app-svc</span>
+<span class="kw">spec:</span>
+  <span class="key">selector:</span>
+    <span class="key">app:</span> <span class="str">web-app</span>            <span class="cm"># ← matches Deployment Pod labels!</span>
+  <span class="key">ports:</span>
+  - <span class="key">port:</span> <span class="val">80</span>                 <span class="cm"># ← Service listens on 80</span>
+    <span class="key">targetPort:</span> <span class="val">3000</span>          <span class="cm"># ← forwards to container's 3000</span>
+---
+<span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Service</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">postgres-svc</span>         <span class="cm"># ← this IS the DB_HOST value!</span>
+<span class="kw">spec:</span>
+  <span class="key">selector:</span>
+    <span class="key">app:</span> <span class="str">postgres</span>
+  <span class="key">ports:</span>
+  - <span class="key">port:</span> <span class="val">5432</span>
+    <span class="key">targetPort:</span> <span class="val">5432</span></code></pre>
+</div>
+
+<div class="tab-content" id="tab-secret">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Secret</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">db-creds</span>
+<span class="kw">type:</span> <span class="str">Opaque</span>
+<span class="kw">stringData:</span>               <span class="cm"># ← stringData auto-encodes to base64</span>
+  <span class="key">username:</span> <span class="str">admin</span>
+  <span class="key">password:</span> <span class="str">supersecret123</span></code></pre>
+</div>
+
+<div class="tab-content" id="tab-pvc">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">PersistentVolumeClaim</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">postgres-pvc</span>
+<span class="kw">spec:</span>
+  <span class="key">accessModes:</span>
+    - <span class="str">ReadWriteOnce</span>
+  <span class="key">resources:</span>
+    <span class="key">requests:</span>
+      <span class="key">storage:</span> <span class="val">10Gi</span>
+  <span class="key">storageClassName:</span> <span class="str">standard</span>  <span class="cm"># ← triggers dynamic provisioning</span></code></pre>
+</div>
+
+<div class="tab-content" id="tab-ingress">
+<pre><code><span class="kw">apiVersion:</span> <span class="str">networking.k8s.io/v1</span>
+<span class="kw">kind:</span> <span class="str">Ingress</span>
+<span class="kw">metadata:</span>
+  <span class="key">name:</span> <span class="str">web-ingress</span>
+<span class="kw">spec:</span>
+  <span class="key">rules:</span>
+  - <span class="key">host:</span> <span class="str">myapp.example.com</span>
+    <span class="key">http:</span>
+      <span class="key">paths:</span>
+      - <span class="key">path:</span> <span class="str">/</span>
+        <span class="key">pathType:</span> <span class="str">Prefix</span>
+        <span class="key">backend:</span>
+          <span class="key">service:</span>
+            <span class="key">name:</span> <span class="str">web-app-svc</span>    <span class="cm"># ← points to Service</span>
+            <span class="key">port:</span>
+              <span class="key">number:</span> <span class="val">80</span>          <span class="cm"># ← Service's port (not targetPort!)</span></code></pre>
+</div>
+
+</section>
+
+</div> <!-- end .main -->
+
+<script>
+// Tab switching
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Scroll progress bar
+window.addEventListener('scroll', () => {
+  const winScroll = document.documentElement.scrollTop;
+  const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  document.getElementById('progressFill').style.width = (winScroll / height * 100) + '%';
+});
+
+// Active nav link on scroll
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.sidebar a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(section => {
+    if (window.scrollY >= section.offsetTop - 100) {
+      current = section.getAttribute('id');
+    }
+  });
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
+
+</body>
+</html>
