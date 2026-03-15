@@ -252,6 +252,7 @@
   <div class="section-label">Storage</div>
   <a href="#volumes">Volumes & Mounts</a>
   <a href="#pv-pvc">PV & PVC</a>
+  <a href="#pv-pvc-deep">PV & PVC Deep Dive</a>
   <a href="#storage-classes">StorageClass</a>
   <div class="section-label">Config & Secrets</div>
   <a href="#configmap">ConfigMap</a>
@@ -1170,6 +1171,394 @@ kubectl rollout restart deployment/my-app
     <text x="10" y="130" fill="#94a3b8" font-size="12" font-style="italic">PV = 🏨 Room  |  PVC = 📋 Reservation  |  Pod = 🧳 Guest</text>
   </svg>
 </div>
+</section>
+
+<!-- ===================== PV & PVC DEEP DIVE ===================== -->
+<section id="pv-pvc-deep" class="fade-in">
+<h2>7b. PV & PVC — Complete Deep Dive</h2>
+
+<p>This is one of the most misunderstood parts of Kubernetes. Let's break it down completely.</p>
+
+<!-- What is PV -->
+<h3 style="color:var(--accent2);margin-top:1.5rem;">What is a PersistentVolume (PV)?</h3>
+<div class="info-box" style="border-left:4px solid var(--accent2);padding:1rem 1.2rem;background:rgba(244,114,182,0.06);border-radius:8px;margin:1rem 0">
+  A <strong>PersistentVolume</strong> is the <em>actual storage resource</em> in the cluster — like a physical hard drive, AWS EBS disk, NFS share, or GCP persistent disk. It exists <strong>independently of any pod</strong>. Even if every pod is deleted, the PV and its data remain.
+</div>
+
+<!-- What is PVC -->
+<h3 style="color:var(--accent);margin-top:1.5rem;">What is a PersistentVolumeClaim (PVC)?</h3>
+<div class="info-box" style="border-left:4px solid var(--accent);padding:1rem 1.2rem;background:rgba(167,139,250,0.06);border-radius:8px;margin:1rem 0">
+  A <strong>PersistentVolumeClaim</strong> is your app's <em>request</em> for storage. It says "I need X amount of storage with Y access mode" — without caring where the storage actually comes from. Kubernetes matches the PVC to an available PV.
+</div>
+
+<!-- Why two objects? -->
+<h3 style="color:var(--accent3);margin-top:1.5rem;">Why Split Into Two Objects?</h3>
+<div class="diagram">
+  <div class="diagram-title">Separation of Concerns</div>
+  <svg viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <!-- Infra Team side -->
+    <rect x="10" y="10" width="370" height="240" rx="12" fill="#1e293b" stroke="#f472b6" stroke-width="2" opacity="0.4"/>
+    <text x="100" y="38" fill="#f472b6" font-size="14" font-weight="bold">Infrastructure Team</text>
+
+    <rect x="30" y="55" width="140" height="55" rx="8" fill="#2d2b55" stroke="#f472b6" stroke-width="1.5" style="animation:glowPink 3s infinite">
+      <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="48" y="78" fill="#f472b6" font-size="12" font-weight="bold">PV: aws-ebs-1</text>
+    <text x="48" y="98" fill="#94a3b8" font-size="10">50Gi | gp3 SSD</text>
+
+    <rect x="30" y="125" width="140" height="55" rx="8" fill="#2d2b55" stroke="#f472b6" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="48" y="148" fill="#f472b6" font-size="12" font-weight="bold">PV: nfs-share</text>
+    <text x="48" y="168" fill="#94a3b8" font-size="10">100Gi | RWX NFS</text>
+
+    <rect x="30" y="195" width="140" height="45" rx="8" fill="#2d2b55" stroke="#f472b6" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="3s" repeatCount="indefinite"/>
+    </rect>
+    <text x="48" y="222" fill="#f472b6" font-size="12" font-weight="bold">PV: local-ssd</text>
+
+    <text x="195" y="78" fill="#94a3b8" font-size="11">Provisions</text>
+    <text x="195" y="95" fill="#94a3b8" font-size="11">real disks</text>
+    <text x="195" y="140" fill="#94a3b8" font-size="11">Manages</text>
+    <text x="195" y="157" fill="#94a3b8" font-size="11">backends</text>
+    <text x="195" y="215" fill="#94a3b8" font-size="11">Capacity</text>
+
+    <!-- Dev Team side -->
+    <rect x="420" y="10" width="370" height="240" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2" opacity="0.4"/>
+    <text x="530" y="38" fill="#38bdf8" font-size="14" font-weight="bold">Developer Team</text>
+
+    <rect x="440" y="60" width="160" height="55" rx="8" fill="#172554" stroke="#38bdf8" stroke-width="1.5" style="animation:glowBlue 3s infinite">
+      <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="455" y="83" fill="#38bdf8" font-size="12" font-weight="bold">PVC: db-storage</text>
+    <text x="455" y="103" fill="#94a3b8" font-size="10">"Give me 10Gi RWO"</text>
+
+    <rect x="440" y="130" width="160" height="55" rx="8" fill="#172554" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="455" y="153" fill="#38bdf8" font-size="12" font-weight="bold">PVC: logs-vol</text>
+    <text x="455" y="173" fill="#94a3b8" font-size="10">"Give me 50Gi RWX"</text>
+
+    <text x="625" y="88" fill="#94a3b8" font-size="11">Just asks</text>
+    <text x="625" y="105" fill="#94a3b8" font-size="11">for storage</text>
+    <text x="625" y="158" fill="#94a3b8" font-size="11">Doesn't care</text>
+    <text x="625" y="175" fill="#94a3b8" font-size="11">about backend</text>
+
+    <!-- Animated connection lines -->
+    <line x1="380" y1="85" x2="440" y2="85" stroke="#34d399" stroke-width="2" class="animated-dash"/>
+    <line x1="380" y1="155" x2="440" y2="155" stroke="#34d399" stroke-width="2" class="animated-dash"/>
+    <text x="388" y="80" fill="#34d399" font-size="10" font-weight="bold">BIND</text>
+    <text x="388" y="150" fill="#34d399" font-size="10" font-weight="bold">BIND</text>
+  </svg>
+</div>
+
+<!-- Full Lifecycle Diagram -->
+<h3 style="color:var(--text);margin-top:1.5rem;">The Complete PV/PVC Lifecycle</h3>
+<div class="diagram">
+  <div class="diagram-title">Animated: From Request to Data Persistence</div>
+  <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <defs>
+      <marker id="arrowGreen2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6" fill="#34d399"/>
+      </marker>
+      <linearGradient id="pvGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#831843"/>
+        <stop offset="100%" stop-color="#1e293b"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Step 1 -->
+    <rect x="10" y="10" width="170" height="80" rx="10" fill="#172554" stroke="#38bdf8" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="28" y="36" fill="#fbbf24" font-size="14" font-weight="bold">Step 1</text>
+    <text x="28" y="56" fill="#38bdf8" font-size="12" font-weight="bold">StorageClass exists</text>
+    <text x="28" y="74" fill="#94a3b8" font-size="10">(or admin creates PV)</text>
+    <line x1="180" y1="50" x2="210" y2="50" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen2)" class="animated-dash"/>
+
+    <!-- Step 2 -->
+    <rect x="215" y="10" width="170" height="80" rx="10" fill="#172554" stroke="#38bdf8" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2.3s" repeatCount="indefinite"/>
+    </rect>
+    <text x="232" y="36" fill="#fbbf24" font-size="14" font-weight="bold">Step 2</text>
+    <text x="232" y="56" fill="#38bdf8" font-size="12" font-weight="bold">Dev creates PVC</text>
+    <text x="232" y="74" fill="#94a3b8" font-size="10">"I need 10Gi RWO"</text>
+    <line x1="385" y1="50" x2="415" y2="50" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen2)" class="animated-dash"/>
+
+    <!-- Step 3 -->
+    <rect x="420" y="10" width="170" height="80" rx="10" fill="#1a3a2a" stroke="#34d399" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="438" y="36" fill="#fbbf24" font-size="14" font-weight="bold">Step 3</text>
+    <text x="438" y="56" fill="#34d399" font-size="12" font-weight="bold">K8s binds PVC → PV</text>
+    <text x="438" y="74" fill="#94a3b8" font-size="10">(auto or manual match)</text>
+    <line x1="590" y1="50" x2="620" y2="50" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen2)" class="animated-dash"/>
+
+    <!-- Step 4 -->
+    <rect x="625" y="10" width="165" height="80" rx="10" fill="#2d2b55" stroke="#a78bfa" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="643" y="36" fill="#fbbf24" font-size="14" font-weight="bold">Step 4</text>
+    <text x="643" y="56" fill="#a78bfa" font-size="12" font-weight="bold">Pod mounts PVC</text>
+    <text x="643" y="74" fill="#94a3b8" font-size="10">claimName in volumes</text>
+
+    <!-- PVC Status Flow -->
+    <text x="10" y="125" fill="#fbbf24" font-size="13" font-weight="bold">PVC Status Journey:</text>
+
+    <rect x="10" y="138" width="120" height="40" rx="8" fill="#451a03" stroke="#f59e0b" stroke-width="2"/>
+    <text x="30" y="163" fill="#f59e0b" font-size="12" font-weight="bold">Pending</text>
+    <line x1="130" y1="158" x2="180" y2="158" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowGreen2)" class="animated-dash"/>
+
+    <rect x="185" y="138" width="120" height="40" rx="8" fill="#1a3a2a" stroke="#34d399" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="212" y="163" fill="#34d399" font-size="12" font-weight="bold">Bound</text>
+    <line x1="305" y1="158" x2="355" y2="158" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowGreen2)" class="animated-dash"/>
+
+    <rect x="360" y="138" width="120" height="40" rx="8" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+    <text x="377" y="163" fill="#94a3b8" font-size="12" font-weight="bold">Released</text>
+    <line x1="480" y1="158" x2="530" y2="158" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowGreen2)" class="animated-dash"/>
+
+    <rect x="535" y="138" width="120" height="40" rx="8" fill="#3b0d0d" stroke="#ef4444" stroke-width="2"/>
+    <text x="555" y="163" fill="#ef4444" font-size="12" font-weight="bold">Available</text>
+
+    <text x="30" y="200" fill="#94a3b8" font-size="10">Waiting for PV</text>
+    <text x="200" y="200" fill="#94a3b8" font-size="10">PV matched!</text>
+    <text x="370" y="200" fill="#94a3b8" font-size="10">PVC deleted</text>
+    <text x="540" y="200" fill="#94a3b8" font-size="10">Admin reclaims</text>
+
+    <!-- Reclaim Policy comparison -->
+    <text x="10" y="240" fill="#fbbf24" font-size="13" font-weight="bold">Reclaim Policy — What Happens When PVC is Deleted:</text>
+
+    <rect x="10" y="255" width="250" height="130" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <text x="70" y="280" fill="#34d399" font-size="13" font-weight="bold">Retain</text>
+    <text x="25" y="302" fill="#94a3b8" font-size="11">PV stays, data preserved</text>
+    <text x="25" y="322" fill="#94a3b8" font-size="11">Status → Released</text>
+    <text x="25" y="342" fill="#94a3b8" font-size="11">Admin must manually reclaim</text>
+    <text x="25" y="365" fill="#34d399" font-size="11" font-weight="bold">Best for: production data</text>
+
+    <rect x="280" y="255" width="250" height="130" rx="10" fill="#1e293b" stroke="#ef4444" stroke-width="2"/>
+    <text x="350" y="280" fill="#ef4444" font-size="13" font-weight="bold">Delete</text>
+    <text x="295" y="302" fill="#94a3b8" font-size="11">PV AND data are DESTROYED</text>
+    <text x="295" y="322" fill="#94a3b8" font-size="11">Underlying disk removed</text>
+    <text x="295" y="342" fill="#94a3b8" font-size="11">Default for dynamic provisioning!</text>
+    <text x="295" y="365" fill="#ef4444" font-size="11" font-weight="bold">Careful: data loss possible!</text>
+
+    <rect x="550" y="255" width="240" height="130" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <text x="615" y="280" fill="#38bdf8" font-size="13" font-weight="bold">Recycle</text>
+    <text x="565" y="302" fill="#94a3b8" font-size="11">Deprecated! Don't use.</text>
+    <text x="565" y="322" fill="#94a3b8" font-size="11">Was: rm -rf /vol/* then reuse</text>
+    <text x="565" y="342" fill="#94a3b8" font-size="11">Replaced by dynamic provisioning</text>
+    <text x="565" y="365" fill="#94a3b8" font-size="11" font-weight="bold">Use Delete + StorageClass instead</text>
+  </svg>
+</div>
+
+<!-- Access Modes Detail -->
+<h3 style="color:var(--text);margin-top:1.5rem;">Access Modes Explained</h3>
+<div class="diagram">
+  <div class="diagram-title">Who Can Read/Write the Volume?</div>
+  <svg viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <!-- RWO -->
+    <rect x="10" y="10" width="240" height="220" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <text x="50" y="38" fill="#38bdf8" font-size="13" font-weight="bold">ReadWriteOnce (RWO)</text>
+    <text x="28" y="62" fill="#94a3b8" font-size="11">ONE node can mount read-write</text>
+    <rect x="70" y="80" width="120" height="40" rx="6" fill="#172554" stroke="#38bdf8">
+      <animate attributeName="stroke-opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="90" y="105" fill="#38bdf8" font-size="11">Node 1: R/W</text>
+    <rect x="70" y="140" width="120" height="40" rx="6" fill="#3b0d0d" stroke="#ef4444" stroke-dasharray="4"/>
+    <text x="82" y="165" fill="#ef4444" font-size="11">Node 2: BLOCKED</text>
+    <text x="28" y="210" fill="#94a3b8" font-size="10">EBS, GCP PD, Azure Disk</text>
+
+    <!-- ROX -->
+    <rect x="270" y="10" width="240" height="220" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="2"/>
+    <text x="310" y="38" fill="#a78bfa" font-size="13" font-weight="bold">ReadOnlyMany (ROX)</text>
+    <text x="288" y="62" fill="#94a3b8" font-size="11">MANY nodes can read, none write</text>
+    <rect x="290" y="80" width="90" height="35" rx="6" fill="#2d2b55" stroke="#a78bfa">
+      <animate attributeName="stroke-opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="300" y="103" fill="#a78bfa" font-size="10">Node 1: READ</text>
+    <rect x="400" y="80" width="90" height="35" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="410" y="103" fill="#a78bfa" font-size="10">Node 2: READ</text>
+    <rect x="345" y="140" width="90" height="35" rx="6" fill="#2d2b55" stroke="#a78bfa"/>
+    <text x="355" y="163" fill="#a78bfa" font-size="10">Node 3: READ</text>
+    <text x="288" y="210" fill="#94a3b8" font-size="10">Config files, shared assets</text>
+
+    <!-- RWX -->
+    <rect x="530" y="10" width="260" height="220" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <text x="570" y="38" fill="#34d399" font-size="13" font-weight="bold">ReadWriteMany (RWX)</text>
+    <text x="548" y="62" fill="#94a3b8" font-size="11">MANY nodes can read AND write</text>
+    <rect x="550" y="80" width="90" height="35" rx="6" fill="#1a3a2a" stroke="#34d399">
+      <animate attributeName="stroke-opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="558" y="103" fill="#34d399" font-size="10">Node 1: R/W</text>
+    <rect x="660" y="80" width="90" height="35" rx="6" fill="#1a3a2a" stroke="#34d399">
+      <animate attributeName="stroke-opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="668" y="103" fill="#34d399" font-size="10">Node 2: R/W</text>
+    <rect x="605" y="140" width="90" height="35" rx="6" fill="#1a3a2a" stroke="#34d399">
+      <animate attributeName="stroke-opacity" values="0.3;1;0.3" dur="2.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="613" y="163" fill="#34d399" font-size="10">Node 3: R/W</text>
+    <text x="548" y="210" fill="#94a3b8" font-size="10">NFS, EFS, CephFS, GlusterFS</text>
+  </svg>
+</div>
+
+<!-- PV YAML -->
+<h3 style="color:var(--text);margin-top:1.5rem;">Complete PV YAML</h3>
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">PersistentVolume</span>
+<span class="key">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-pv</span>
+<span class="key">spec:</span>
+  <span class="key">capacity:</span>
+    <span class="key">storage:</span> <span class="str">50Gi</span>              <span class="cm"># Total size of this volume</span>
+  <span class="key">accessModes:</span>
+    - <span class="str">ReadWriteOnce</span>            <span class="cm"># RWO — one node at a time</span>
+  <span class="key">persistentVolumeReclaimPolicy:</span> <span class="str">Retain</span>  <span class="cm"># Keep data after PVC deleted</span>
+  <span class="key">storageClassName:</span> <span class="str">standard</span>    <span class="cm"># Must match PVC's storageClassName</span>
+  <span class="key">hostPath:</span>                      <span class="cm"># Backend type (example: local path)</span>
+    <span class="key">path:</span> <span class="str">/mnt/data</span></code></pre>
+
+<!-- PVC YAML -->
+<h3 style="color:var(--text);margin-top:1.5rem;">Complete PVC YAML</h3>
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">PersistentVolumeClaim</span>
+<span class="key">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-pvc</span>
+<span class="key">spec:</span>
+  <span class="key">accessModes:</span>
+    - <span class="str">ReadWriteOnce</span>            <span class="cm"># Must match PV's access mode</span>
+  <span class="key">resources:</span>
+    <span class="key">requests:</span>
+      <span class="key">storage:</span> <span class="str">10Gi</span>            <span class="cm"># Requesting 10Gi (PV must be >= this)</span>
+  <span class="key">storageClassName:</span> <span class="str">standard</span>    <span class="cm"># Must match PV's storageClassName</span></code></pre>
+
+<!-- Mount in Pod -->
+<h3 style="color:var(--text);margin-top:1.5rem;">Using PVC in a Pod</h3>
+<pre><code><span class="kw">apiVersion:</span> <span class="str">v1</span>
+<span class="kw">kind:</span> <span class="str">Pod</span>
+<span class="key">metadata:</span>
+  <span class="key">name:</span> <span class="str">my-app</span>
+<span class="key">spec:</span>
+  <span class="key">containers:</span>
+    - <span class="key">name:</span> <span class="str">app</span>
+      <span class="key">image:</span> <span class="str">my-app:1.0</span>
+      <span class="key">volumeMounts:</span>              <span class="cm"># STEP 2: Mount into container</span>
+        - <span class="key">name:</span> <span class="str">data-vol</span>
+          <span class="key">mountPath:</span> <span class="str">/app/data</span>  <span class="cm"># Path INSIDE the container</span>
+  <span class="key">volumes:</span>                      <span class="cm"># STEP 1: Declare the volume</span>
+    - <span class="key">name:</span> <span class="str">data-vol</span>            <span class="cm"># Name links to volumeMounts above</span>
+      <span class="key">persistentVolumeClaim:</span>
+        <span class="key">claimName:</span> <span class="str">my-pvc</span>      <span class="cm"># Must match your PVC name</span></code></pre>
+
+<!-- Binding Rules -->
+<h3 style="color:var(--text);margin-top:1.5rem;">How K8s Matches PVC to PV</h3>
+<div class="info-box" style="border-left:4px solid var(--accent4);padding:1rem 1.2rem;background:rgba(251,191,36,0.06);border-radius:8px;margin:1rem 0">
+  Kubernetes checks these conditions when matching a PVC to a PV:
+</div>
+<div class="diagram">
+  <div class="diagram-title">Matching Rules (ALL must pass)</div>
+  <svg viewBox="0 0 800 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:800px;">
+    <rect x="10" y="10" width="180" height="55" rx="8" fill="#172554" stroke="#38bdf8" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <text x="25" y="33" fill="#fbbf24" font-size="11" font-weight="bold">Rule 1: Capacity</text>
+    <text x="25" y="53" fill="#94a3b8" font-size="10">PV size >= PVC request</text>
+
+    <rect x="210" y="10" width="180" height="55" rx="8" fill="#172554" stroke="#38bdf8" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2.3s" repeatCount="indefinite"/>
+    </rect>
+    <text x="225" y="33" fill="#fbbf24" font-size="11" font-weight="bold">Rule 2: Access Mode</text>
+    <text x="225" y="53" fill="#94a3b8" font-size="10">PV supports PVC mode</text>
+
+    <rect x="410" y="10" width="180" height="55" rx="8" fill="#172554" stroke="#38bdf8" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2.6s" repeatCount="indefinite"/>
+    </rect>
+    <text x="425" y="33" fill="#fbbf24" font-size="11" font-weight="bold">Rule 3: StorageClass</text>
+    <text x="425" y="53" fill="#94a3b8" font-size="10">Same storageClassName</text>
+
+    <rect x="610" y="10" width="180" height="55" rx="8" fill="#172554" stroke="#38bdf8" stroke-width="1.5">
+      <animate attributeName="stroke-opacity" values="0.4;1;0.4" dur="2.9s" repeatCount="indefinite"/>
+    </rect>
+    <text x="625" y="33" fill="#fbbf24" font-size="11" font-weight="bold">Rule 4: Availability</text>
+    <text x="625" y="53" fill="#94a3b8" font-size="10">PV not already bound</text>
+
+    <!-- Example -->
+    <text x="10" y="95" fill="#fbbf24" font-size="12" font-weight="bold">Example:</text>
+    <rect x="10" y="105" width="380" height="95" rx="10" fill="#1e293b" stroke="#38bdf8"/>
+    <text x="25" y="128" fill="#38bdf8" font-size="12" font-weight="bold">PVC requests: 10Gi, RWO, standard</text>
+    <text x="25" y="150" fill="#94a3b8" font-size="11">PV-A: 5Gi, RWO, standard → REJECTED (too small)</text>
+    <text x="25" y="170" fill="#94a3b8" font-size="11">PV-B: 50Gi, RWO, standard → BOUND (smallest fit)</text>
+    <text x="25" y="190" fill="#94a3b8" font-size="11">PV-C: 20Gi, RWO, premium → REJECTED (wrong class)</text>
+
+    <rect x="410" y="105" width="380" height="95" rx="10" fill="#1e293b" stroke="#f59e0b"/>
+    <text x="425" y="128" fill="#f59e0b" font-size="12" font-weight="bold">Important Gotcha!</text>
+    <text x="425" y="150" fill="#94a3b8" font-size="11">PVC asked for 10Gi but got 50Gi PV.</text>
+    <text x="425" y="170" fill="#94a3b8" font-size="11">The PVC gets MORE than requested,</text>
+    <text x="425" y="190" fill="#94a3b8" font-size="11">but the 50Gi PV is now FULLY reserved.</text>
+  </svg>
+</div>
+
+<!-- Common debugging -->
+<h3 style="color:var(--text);margin-top:1.5rem;">Debugging PV/PVC Issues</h3>
+<pre><code><span class="cm"># Check PVC status — is it Bound?</span>
+<span class="str">kubectl get pvc</span>
+
+<span class="cm"># Check PV status and what it's bound to</span>
+<span class="str">kubectl get pv</span>
+
+<span class="cm"># Detailed info — shows events and errors</span>
+<span class="str">kubectl describe pvc my-pvc</span>
+
+<span class="cm"># Check which StorageClasses are available</span>
+<span class="str">kubectl get storageclass</span>
+
+<span class="cm"># If PVC stuck in Pending, check:</span>
+<span class="cm"># 1. StorageClass exists and has a working provisioner</span>
+<span class="cm"># 2. PV capacity >= PVC request</span>
+<span class="cm"># 3. Access modes match</span>
+<span class="cm"># 4. Node affinity (for local volumes)</span></code></pre>
+
+<div class="warn-box">
+  <div class="warn-title">Common Gotcha: PV Won't Rebind</div>
+  After deleting a PVC with <code>reclaimPolicy: Retain</code>, the PV goes to "Released" — but it does NOT automatically become available for a new PVC. An admin must manually clear the <code>claimRef</code> field:
+  <pre style="margin-top:0.5rem"><code><span class="str">kubectl patch pv my-pv -p '{"spec":{"claimRef": null}}'</span></code></pre>
+</div>
+
+<!-- Dynamic vs Static -->
+<h3 style="color:var(--text);margin-top:1.5rem;">Static vs Dynamic Provisioning</h3>
+<div class="vs-grid">
+  <div class="vs-box">
+    <h4 style="color:var(--accent2)">Static (Manual)</h4>
+    <p>Admin creates PVs in advance. Developer creates PVC. K8s matches them.</p>
+    <p style="color:var(--accent4);font-size:0.85rem"><strong>Use when:</strong> On-prem, specific disks, compliance</p>
+    <pre><code><span class="cm"># Admin pre-creates PV</span>
+<span class="kw">kind:</span> <span class="str">PersistentVolume</span>
+<span class="key">spec:</span>
+  <span class="key">capacity:</span>
+    <span class="key">storage:</span> <span class="str">100Gi</span>
+  <span class="key">nfs:</span>
+    <span class="key">server:</span> <span class="str">10.0.0.5</span>
+    <span class="key">path:</span> <span class="str">/exports/data</span></code></pre>
+  </div>
+  <div class="vs-box">
+    <h4 style="color:var(--accent3)">Dynamic (Automatic)</h4>
+    <p>Developer creates PVC with a StorageClass. K8s auto-creates the PV.</p>
+    <p style="color:var(--accent4);font-size:0.85rem"><strong>Use when:</strong> Cloud (AWS, GCP, Azure), standard setups</p>
+    <pre><code><span class="cm"># Just create PVC — PV auto-created!</span>
+<span class="kw">kind:</span> <span class="str">PersistentVolumeClaim</span>
+<span class="key">spec:</span>
+  <span class="key">storageClassName:</span> <span class="str">gp3</span>
+  <span class="key">resources:</span>
+    <span class="key">requests:</span>
+      <span class="key">storage:</span> <span class="str">10Gi</span></code></pre>
+  </div>
+</div>
+
+<div class="tip-box">
+  <div class="tip-title">Real-World Tip</div>
+  In most cloud Kubernetes clusters (EKS, GKE, AKS), you almost never create PVs manually. You just create a PVC with a StorageClass and everything is handled automatically. Static provisioning is mainly used in on-premise or special compliance scenarios.
+</div>
+
 </section>
 
 <!-- ===================== STORAGE CLASS ===================== -->
